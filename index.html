@@ -48,19 +48,53 @@
     text-shadow: 0 4px 0 rgba(0,0,0,.25), 0 8px 30px rgba(0,0,0,.35); opacity: 0; pointer-events: none; white-space: nowrap; z-index: 4;
     transition: opacity .4s, transform .6s cubic-bezier(.2, 1.6, .4, 1); }
   #card.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #card.big { font-size: clamp(110px, 26vw, 240px); color: #ffd600; -webkit-text-stroke: 10px #1f2d50; paint-order: stroke fill; }
+  #bubble { cursor: pointer; }
+  #gear, #skip { position: fixed; top: 16px; width: 48px; height: 48px; border-radius: 50%; border: none; background: rgba(255,255,255,.7);
+    font-size: 20px; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.1); opacity: .75; touch-action: none; }
+  #gear { left: 74px; } #skip { left: 132px; display: none; }
+  body.journey #skip { display: block; }
+  #pad[data-n="few"] button { width: clamp(84px, 17vw, 124px); height: clamp(84px, 17vw, 124px); font-size: clamp(50px, 10vw, 76px); border-radius: 28px; }
+  #pad[data-n="some"] button { width: clamp(64px, 13vw, 100px); height: clamp(64px, 13vw, 100px); font-size: clamp(38px, 8vw, 60px); border-radius: 24px; }
+  #start #play { font-size: 64px; padding: 18px 64px; border-radius: 36px; }
+  #stickers { margin-top: 20px; font-size: 30px; letter-spacing: 4px; }
+  #stickers span { opacity: .18; filter: grayscale(1); } #stickers span.got { opacity: 1; filter: none; }
+  .small { font-size: 13px !important; color: #888 !important; margin: 12px 0 0 !important; }
+  #parent { position: fixed; inset: 0; display: none; place-items: center; background: rgba(10, 30, 50, .6); z-index: 20; }
+  #parent.open { display: grid; }
+  #parent .card { background: #fff; border-radius: 24px; padding: 24px 28px; width: min(440px, calc(100vw - 32px)); font-family: system-ui, sans-serif; color: #333; }
+  #parent h2 { font-size: 22px; margin-bottom: 14px; }
+  #parent .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; font-size: 15px; }
+  #parent button { font: inherit; font-size: 15px; padding: 8px 14px; border-radius: 12px; border: 2px solid #cfd8dc; background: #fff; cursor: pointer; }
+  #parent button.on { background: #1e88e5; border-color: #1e88e5; color: #fff; }
+  #report { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 8px 0 4px; }
+  #report div { border-radius: 10px; padding: 6px 0; text-align: center; font-weight: 700; font-size: 18px; color: #fff; background: #b0bec5; }
+  #report div small { display: block; font-size: 10px; font-weight: 400; opacity: .9; }
+  #report .know { background: #43a047; } #report .learn { background: #f9a825; } #report .locked { background: #e0e0e0; color: #999; }
 </style>
 </head>
 <body>
   <div id="bubble">🚆 <span id="say">Get ready…</span> <span class="num" id="bnum">?</span></div>
-  <div id="stars">⭐ <span id="starCount">0</span></div>
+  <div id="stars"><span id="tripStars">☆☆☆</span> 🚆</div>
   <button id="mute" aria-label="Sound on/off">🔊</button>
+  <button id="gear" aria-label="For grown-ups: press and hold" title="For grown-ups: press and hold">⚙️</button>
+  <button id="skip" aria-label="Skip the trip: press and hold" title="Skip the trip: press and hold">⏭</button>
   <div id="pad" class="off"></div>
   <div id="card"></div>
   <div id="fade"></div>
   <div id="start"><div class="card">
-    <h1>🚆 Platform Train</h1>
-    <p>Every platform has its own train.<br>Listen for the number, tap the right number,<br>train or platform sign — then ride along!</p>
-    <button id="play">▶ Play</button>
+    <h1>🚆 Number Train</h1>
+    <button id="play" aria-label="Play">▶</button>
+    <div id="stickers"></div>
+    <p class="small">Learn numbers 1–9 · turn the sound on 🔊 · grown-ups: hold ⚙️ for settings</p>
+  </div></div>
+  <div id="parent"><div class="card">
+    <h2>For grown-ups</h2>
+    <div class="row">Numbers in play: <button data-max="3">1–3</button><button data-max="5">1–5</button><button data-max="9">1–9</button><span id="pmax"></span></div>
+    <div id="report"></div>
+    <p class="small">Green = knows it · yellow = still learning · grey = not started. Under each number: right first time / mistakes. A new number is added automatically once the current ones are known.</p>
+    <div class="row"><label><input type="checkbox" id="ptrips"> Go on a trip after every 3 right answers</label></div>
+    <div class="row"><button id="preset">Reset progress</button><span style="flex:1"></span><button id="pclose" class="on">Done</button></div>
   </div></div>
 
   <script type="importmap">
@@ -485,7 +519,7 @@
         mesh(new THREE.BoxGeometry(.1, .02, P_LEN - .2), whiteLine, edge + s * .1, PLAT_H + .02, P_MID, scene, false);
         mesh(new THREE.BoxGeometry(.32, .025, P_LEN - .2), tactileMat, edge + s * .42, PLAT_H + .02, P_MID, scene, false);
       }
-      for (const z of [1.6, -9.6]) {
+      for (const z of [2.7, -10.6]) {
         mesh(new THREE.CylinderGeometry(.06, .08, 4, 10), steelMat, cx, PLAT_H + 2, z);
         mesh(new THREE.BoxGeometry(1.5, .06, .06), steelMat, cx, PLAT_H + 4, z);
         for (const s of [-1, 1]) mesh(new RoundedBoxGeometry(.5, .1, .24, 2, .04), lampHeadMat, cx + s * .7, PLAT_H + 3.94, z, scene, false);
@@ -729,7 +763,8 @@
       tr.blinkT -= dt;
       if (tr.blinkT <= 0) { tr.blink = .15; tr.blinkT = rnd(2, 5); }
       tr.blink = Math.max(0, tr.blink - dt);
-      const lid = tr.blink > 0 ? .12 : tr.happy > 0 ? .4 : 1;
+      const asleep = tr.i >= save.max;                       // numbers not in play yet: the train is asleep
+      const lid = asleep ? .08 : tr.blink > 0 ? .12 : tr.happy > 0 ? .4 : 1;
       tr.happy = Math.max(0, tr.happy - dt);
       const lx = tr.wobble > 0 ? Math.sin(time * 14) * .12 : Math.sin(time * .7 + tr.i * 1.7) * .07;
       tr.face.eyes.forEach(ey => { ey.g.scale.y += (lid - ey.g.scale.y) * Math.min(1, dt * 25); ey.pupil.position.x = lx; });
@@ -738,23 +773,22 @@
 
     // ---------- waiting passengers: each track has a little group on the platform beside it ----------
     const waiting = [];
-    const PASS_Z = [-7, -4.6, -.6];
     function spawnPassengers(i) {
       (waiting[i] || []).forEach(w => scene.remove(w.g));
-      const n = 2 + (Math.random() < .5 ? 1 : 0);
+      const n = i + 1;                               // platform 3 has 3 passengers: the number you can count
       waiting[i] = [];
       for (let k = 0; k < n; k++) {
         const w = makePerson();
-        w.home = new THREE.Vector3(xOf(i) - 2.05 + rnd(-.2, .2), PLAT_H, PASS_Z[k] + rnd(-.3, .3));
-        w.g.position.copy(w.home); w.g.rotation.y = rnd(-.5, .2);
-        w.full = w.g.scale.x; w.g.scale.setScalar(.001); w.state = 'appear'; w.t = -k * .15;
+        w.home = new THREE.Vector3(xOf(i) - 2.05 + rnd(-.12, .12), PLAT_H, 1.2 - k * 1.3);
+        w.g.position.copy(w.home); w.g.rotation.y = rnd(-.4, .2);
+        w.full = w.g.scale.x; w.g.scale.setScalar(.001); w.state = 'appear'; w.t = -k * .1;
         scene.add(w.g); waiting[i].push(w);
       }
     }
     for (let i = 0; i < N; i++) spawnPassengers(i);
     function boardPassengers(tr) {
       waiting[tr.i].forEach((w, k) => {
-        w.state = 'walk'; w.t = -.3 - k * .45;
+        w.state = 'walk'; w.t = -(2.0 + k * .75);   // one at a time, so we can count them
         const doors = [];
         for (const cz of [Z_START - S_END + CAR_GAP, Z_START - S_END + 2 * CAR_GAP]) doors.push(cz - 1.95, cz + 1.95);
         const dz = doors.reduce((a, b) => Math.abs(b - w.home.z) < Math.abs(a - w.home.z) ? b : a);
@@ -798,7 +832,7 @@
           } else if (w.state === 'enter') {
             w.t += dt / .3;
             w.g.scale.setScalar(Math.max(.001, w.full * (1 - w.t)));
-            if (w.t >= 1) { w.state = 'gone'; w.g.visible = false; revealRider(tr); tone(880 + Math.random() * 300, .12, 'sine', .12); }
+            if (w.t >= 1) { w.state = 'gone'; w.g.visible = false; revealRider(tr); onBoarded(tr); }
           }
         }
         tr.riders.forEach(r => { if (r.visible && r.scale.x < 1) r.scale.setScalar(Math.min(1, r.scale.x + dt * 5)); });
@@ -834,7 +868,7 @@
     }
     const horn = () => { for (const d of [0, .75]) { tone(311, d ? 1.0 : .55, 'sawtooth', .08, d, 0, 1400); tone(370, d ? 1.0 : .55, 'sawtooth', .07, d, 0, 1400); } };
     const ding = () => [523, 659, 784, 1047].forEach((f, k) => tone(f, .55, 'sine', .18, k * .16));
-    const oops = () => { tone(330, .25, 'triangle', .2, 0, -80); tone(250, .35, 'triangle', .2, .2, -60); };
+    const soft = () => tone(300, .25, 'sine', .14, 0, -50);          // gentle 'not that one'
     function clack(vol) {
       if (!actx || muted) return;
       if (!noiseBuf) {
@@ -847,20 +881,30 @@
         src.connect(f).connect(g).connect(actx.destination); src.start(t0);
       }
     }
-    function speak(text) {
+    function speak(text, cancel = true) {
       if (muted || !('speechSynthesis' in window)) return;
-      speechSynthesis.cancel();
+      if (cancel) speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = .9; u.pitch = 1.25; u.lang = 'en-US';
+      u.rate = .82; u.pitch = 1.25; u.lang = 'en-US';
       speechSynthesis.speak(u);
     }
     const muteBtn = document.getElementById('mute');
     muteBtn.onclick = () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; if (muted && window.speechSynthesis) speechSynthesis.cancel(); };
 
+    // ================= saved progress =================
+    const SAVE_KEY = 'numberTrain.v1';
+    const blank = () => ({ max: 3, stats: Object.fromEntries(Array.from({ length: N }, (_, k) => [k + 1, { ok: 0, streak: 0, miss: 0 }])),
+                           stickers: [], trips: true, total: 0, sinceUnlock: 0, champion: false });
+    let save = blank();
+    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.stats && s.max) save = Object.assign(blank(), s); } catch (e) {}
+    const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+    const known = n => save.stats[n].ok >= 2;                         // right first time, twice
+    const allKnown = () => { for (let n = 1; n <= save.max; n++) if (!known(n)) return false; return true; };
+
     // ================= UI =================
     const pad = document.getElementById('pad');
     const sayEl = document.getElementById('say'), bnum = document.getElementById('bnum'), bubbleEl = document.getElementById('bubble');
-    const starEl = document.getElementById('starCount');
+    const tripEl = document.getElementById('tripStars');
     const buttons = [];
     for (let i = 0; i < N; i++) {
       const b = document.createElement('button');
@@ -869,63 +913,162 @@
       pad.appendChild(b); buttons.push(b);
     }
     addEventListener('keydown', e => { if (e.key >= '1' && e.key <= '9') choose(+e.key); });
-    function showBubble(text, n) {
+    function showBubble(text, n, hidden = false) {
       sayEl.textContent = text;
-      bnum.textContent = n; bnum.style.background = COLORS[n - 1];
+      bnum.textContent = hidden ? '👂' : n; bnum.style.background = hidden ? '#607d8b' : COLORS[n - 1];
       bubbleEl.classList.remove('pop'); void bubbleEl.offsetWidth; bubbleEl.classList.add('pop');
+    }
+    // only the numbers in play get a button (big ones while there are few) and a lit sign
+    function layoutNumbers() {
+      buttons.forEach((b, i) => b.style.display = i < save.max ? '' : 'none');
+      pad.dataset.n = save.max <= 3 ? 'few' : save.max <= 5 ? 'some' : 'all';
+      boards.forEach((b, i) => { const m = b.material[5], on = i < save.max; m.color.set(on ? '#ffffff' : '#3d434b'); m.emissiveIntensity = on ? .06 : 0; });
+    }
+    function drawStickers() {
+      document.getElementById('stickers').innerHTML = DESTS.map((d, i) => `<span class="${save.stickers.includes(i) ? 'got' : ''}">${d.emoji}</span>`).join('');
+    }
+    // press-and-hold, so little fingers do not open grown-up controls by accident
+    function hold(el, ms, fn) {
+      let t = 0;
+      el.addEventListener('pointerdown', () => { t = setTimeout(fn, ms); });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(ev, () => clearTimeout(t));
     }
 
     // ================= game flow =================
-    let state = 'idle', target = 0, lastTarget = 0, wrongs = 0, stars = 0, boardBounce = -1, follow = null;
+    let state = 'idle', target = 0, lastTarget = 0, mode = 'see', revealed = true, wrongs = 0, boardBounce = -1, follow = null;
+    let tripStars = 0, pendingUnlock = false, forceNext = 0, nudgeT = 0, boarding = null;
     const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    const ASK = ['Take me to platform', 'Please go to platform', 'Which train goes to platform', 'Find platform'];
+    const FIND = ['Find number', 'Where is number', 'Tap number', 'Can you find number'];
+    const PRAISE = ['Yes!', 'Great job!', 'You did it!', 'Well done!', 'Hooray!'];
+    const drawTrip = () => tripEl.textContent = '⭐'.repeat(tripStars) + '☆'.repeat(3 - tripStars);
 
+    function pickTarget() {
+      if (forceNext) { const n = forceNext; forceNext = 0; return n; }
+      const pool = [];
+      for (let n = 1; n <= save.max; n++) if (n !== lastTarget || save.max === 1) {
+        const st = save.stats[n], w = st.ok < 2 ? 3 : st.streak < 2 ? 2 : 1;   // practise the ones still being learned more often
+        for (let k = 0; k < w; k++) pool.push(n);
+      }
+      return pick(pool);
+    }
+    function ask() {
+      const phrase = pick(FIND);
+      if (mode === 'hear' && !revealed) { showBubble('Listen! ' + phrase, target, true); speak(`Listen! ${phrase} ${target}!`); }
+      else { showBubble(phrase, target); speak(`${phrase} ${target}!`); }
+    }
+    function hint() { buttons[target - 1].classList.add('hint'); boardBounce = target - 1; }
+    // if nothing happens: say it again, then show the number, then show where it is
+    function nudge(k) {
+      clearTimeout(nudgeT);
+      if (k > 5) return;
+      nudgeT = setTimeout(() => {
+        if (state !== 'ask') return;
+        revealed = true; if (k >= 1) hint();
+        ask(); nudge(k + 1);
+      }, k ? 10000 : 8000);
+    }
     function newRound() {
-      do { target = 1 + Math.floor(Math.random() * N); } while (target === lastTarget);
-      lastTarget = target; wrongs = 0; state = 'ask'; boardBounce = -1;
-      const phrase = ASK[Math.floor(Math.random() * ASK.length)];
-      showBubble(phrase, target);
+      if (target > save.max) lastTarget = 0;
+      target = pickTarget(); lastTarget = target; wrongs = 0; state = 'ask'; boardBounce = -1;
+      // once a number is well known, sometimes ask by voice only: hear "three", find 3
+      mode = save.stats[target].streak >= 3 && Math.random() < .6 ? 'hear' : 'see'; revealed = mode === 'see';
       buttons.forEach(b => b.classList.remove('hint'));
       pad.classList.remove('off');
-      speak(`${phrase} ${target}!`);
+      ask(); nudge(0);
     }
+    bubbleEl.onclick = () => { if (state === 'ask') ask(); };
 
     function choose(n) {
-      if (state !== 'ask') return;
-      const btn = buttons[n - 1], tr = trains[n - 1];
+      if (state !== 'ask' || n > save.max) return;
+      const btn = buttons[n - 1], tr = trains[n - 1], st = save.stats[target];
       if (n === target) {
+        clearTimeout(nudgeT);
         state = 'go'; pad.classList.add('off'); boardBounce = -1;
         buttons.forEach(b => b.classList.remove('hint'));
+        if (wrongs === 0) { st.ok++; st.streak++; }
+        save.total++; save.sinceUnlock++;
+        if (save.max < N && save.sinceUnlock >= 5 && allKnown()) pendingUnlock = true;
+        persist();
         highlight(tr.i, true); setSignal(tr.i, true);
         tr.lampMat.emissiveIntensity = 9; tr.happy = 1.4;
-        showBubble('Yes! Off we go to platform', n);
-        horn(); speak(`Yes! Number ${n}. All aboard!`);
+        const praise = pick(PRAISE);
+        showBubble(praise + ' Number', n);
+        horn(); speak(`${praise} Number ${n}!`);
         follow = tr;
-        tr.anim = { from: tr.s, to: S_END, t: 0, dur: 6, delay: .8, done: () => arrive(tr) };
+        tr.anim = { from: tr.s, to: S_END, t: 0, dur: 5.5, delay: .8, done: () => arrive(tr) };
       } else {
-        wrongs++;
+        // no failing: say what was tapped, then show the right one straight away
+        wrongs++; st.miss++; st.streak = 0; persist();
         btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
-        oops(); tr.wobble = .7;
+        soft(); tr.wobble = .7;
+        revealed = true;
         showBubble(`That's ${n}. Find`, target);
-        speak(`That is ${n}. Can you find ${target}?`);
-        if (wrongs >= 2) { buttons[target - 1].classList.add('hint'); boardBounce = target - 1; }
+        speak(`That is ${n}. Let's find ${target}!`);
+        hint(); nudge(1);
       }
     }
 
     function arrive(tr) {
-      state = 'arrived'; stars++; starEl.textContent = stars;
-      showBubble('Hooray! We reached platform', target);
-      ding(); speak(`Hooray! Platform ${target}! All aboard!`);
-      boardPassengers(tr);
+      state = 'arrived';
+      showBubble('All aboard! Count with me', target);
+      ding(); speak('All aboard! Count with me!');
       tr.happy = 3;
       burst(new THREE.Vector3(tr.x, 6, Z_START - tr.s));
       boardBounce = tr.i; setSignal(tr.i, false);
-      setTimeout(() => startJourney(tr), 3200);
+      boarding = { tr, count: 0, total: waiting[tr.i].length };
+      boardPassengers(tr);
+    }
+    // each passenger stepping in is counted out loud: platform 4 → "1, 2, 3, 4"
+    function onBoarded(tr) {
+      if (!boarding || boarding.tr !== tr) return;
+      const c = ++boarding.count;
+      showCard(String(c), 800); speak(String(c), false);
+      tone(520 + c * 60, .14, 'sine', .14);
+      if (c === boarding.total) { boarding = null; setTimeout(() => afterBoarding(tr), 1600); }
+    }
+    function afterBoarding(tr) {
+      tripStars++; drawTrip();
+      if (tripStars >= 3) {
+        setTimeout(() => { tripStars = 0; drawTrip(); }, 2500);
+        if (save.trips) return startJourney(tr);
+      }
+      goHome(tr);
     }
     function goHome(tr) {
       state = 'back'; boardBounce = -1;
-      showBubble('Going back for the next trip…', tr.i + 1);
-      tr.anim = { from: tr.s, to: S0, t: 0, dur: 4.5, delay: 0, done: () => { highlight(tr.i, false); tr.lampMat.emissiveIntensity = .8; follow = null; newRound(); } };
+      showBubble('Bye bye, train number', tr.i + 1);
+      tr.anim = { from: tr.s, to: S0, t: 0, dur: 4, delay: 0, done: () => {
+        highlight(tr.i, false); tr.lampMat.emissiveIntensity = .8; follow = null;
+        if (tr.riders.some(r => r.visible)) { tr.riders.forEach(r => r.visible = false); spawnPassengers(tr.i); }
+        afterHome();
+      } };
+    }
+    function afterHome() {
+      if (pendingUnlock && save.max < N) {
+        pendingUnlock = false; save.max++; save.sinceUnlock = 0; persist();
+        forceNext = save.max;
+        introduce([save.max], true, newRound);
+      } else if (!save.champion && save.max === N && allKnown()) {
+        save.champion = true; persist();
+        state = 'intro'; showCard('🏆 1 2 3 4 5 6 7 8 9 🏆', 4200); ding();
+        burst(new THREE.Vector3(0, 8, 0));
+        speak('Wow! You know all the numbers, from one to nine!');
+        setTimeout(newRound, 4600);
+      } else newRound();
+    }
+    // show numbers one by one: the sign bounces, the train wakes up, the number is said
+    function introduce(nums, isNew, then) {
+      state = 'intro'; pad.classList.add('off'); layoutNumbers();
+      let k = 0;
+      const step = () => {
+        if (k >= nums.length) { boardBounce = -1; return then(); }
+        const n = nums[k++]; boardBounce = n - 1; trains[n - 1].happy = 2;
+        showBubble(isNew ? 'A new number!' : 'This is number', n); showCard(String(n), isNew ? 2800 : 1500);
+        speak(isNew ? `A new number! ${n}! This is number ${n}.` : `This is ${n}.`);
+        tone(660, .2, 'sine', .15); tone(880, .3, 'sine', .15, .15);
+        setTimeout(step, isNew ? 4200 : 2100);
+      };
+      setTimeout(step, 400);
     }
 
     // tap a train or a number board in the 3D scene
@@ -941,11 +1084,32 @@
       if (o) choose(o.userData.idx + 1);
     });
 
+    layoutNumbers(); drawTrip();
     document.getElementById('play').onclick = () => {
       actx = new (window.AudioContext || window.webkitAudioContext)();
       document.getElementById('start').remove();
-      newRound();
+      if (save.total === 0) introduce(Array.from({ length: save.max }, (_, k) => k + 1), false, newRound);   // first time: meet the numbers
+      else newRound();
     };
+
+    // ---------- grown-ups panel (hold the gear) ----------
+    const parentEl = document.getElementById('parent');
+    function drawParent() {
+      parentEl.querySelectorAll('[data-max]').forEach(b => b.classList.toggle('on', +b.dataset.max === save.max));
+      document.getElementById('pmax').textContent = [3, 5, 9].includes(save.max) ? '' : `(now 1–${save.max})`;
+      document.getElementById('ptrips').checked = save.trips;
+      document.getElementById('report').innerHTML = Array.from({ length: N }, (_, k) => {
+        const n = k + 1, st = save.stats[n];
+        const cls = n > save.max ? 'locked' : known(n) && st.streak >= 1 ? 'know' : st.ok + st.miss > 0 ? 'learn' : '';
+        return `<div class="${cls}">${n}<small>${st.ok} / ${st.miss}</small></div>`;
+      }).join('');
+    }
+    hold(document.getElementById('gear'), 1200, () => { drawParent(); parentEl.classList.add('open'); clearTimeout(nudgeT); });
+    parentEl.querySelectorAll('[data-max]').forEach(b => b.onclick = () => { save.max = +b.dataset.max; save.sinceUnlock = 0; pendingUnlock = false; persist(); layoutNumbers(); drawParent(); });
+    document.getElementById('ptrips').onchange = e => { save.trips = e.target.checked; persist(); };
+    document.getElementById('preset').onclick = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); };
+    document.getElementById('pclose').onclick = () => { parentEl.classList.remove('open'); if (state === 'ask') newRound(); };
+    hold(document.getElementById('skip'), 800, () => { if (journey && !journey.ending) { journey.ending = true; endJourney(); } });
 
     // =====================================================================
     // ================= JOURNEYS: each train has its own trip ==============
@@ -1231,6 +1395,7 @@
       { name: 'Flower Valley', emoji: '🌸', props: 'flowers', amp: 5, far: [330, 700, 45], fog: '#e2f0e0', bounce: '#77bf58', turb: 3, ray: 1.7,
         ramp: [[0, '#71bd52'], [10, '#5fad48'], [55, '#4c9642']] },
     ];
+    drawStickers();
     const FOG_NIGHT = new THREE.Color('#2c3b6c'), FOG_DUSK = new THREE.Color('#e3996c');
     const C_WARM = new THREE.Color('#ff9550'), C_WHITE = new THREE.Color('#fff1dd'), C_MOON = new THREE.Color('#a9bcff');
     const CL_DAY = new THREE.Color(1, 1, 1), CL_DUSK = new THREE.Color(1.2, .62, .42), CL_NIGHT = new THREE.Color(.07, .09, .18);
@@ -1378,7 +1543,7 @@
     const fadeEl = document.getElementById('fade'), cardEl = document.getElementById('card');
     const fade = on => fadeEl.style.opacity = on ? 1 : 0;
     function showCard(text, ms = 2600) {
-      cardEl.textContent = text; cardEl.classList.add('show');
+      cardEl.textContent = text; cardEl.classList.toggle('big', text.length <= 2); cardEl.classList.add('show');
       clearTimeout(showCard.t); showCard.t = setTimeout(() => cardEl.classList.remove('show'), ms);
     }
     const cap = s => s.replace(/^the /, '').replace(/^./, c => c.toUpperCase());
@@ -1391,9 +1556,10 @@
         const D = DESTS[tr.i];
         const J = J_CACHE[tr.i] || (J_CACHE[tr.i] = buildJourney(D));
         tr.inJourney = true; tr.cars.forEach(c => J.scene.add(c));
-        journey = { J, tr, D, t: 0, dur: 26, prog: 0, look: null, envT: 0, saidDusk: false, saidNight: false, saidMorning: false, ending: false };
+        journey = { J, tr, D, t: 0, dur: 22, prog: 0, look: null, envT: 0, saidDusk: false, saidNight: false, saidMorning: false, ending: false };
         showBubble(`Next stop: ${D.name} ${D.emoji}`, tr.i + 1);
         showCard(`${D.emoji} ${cap(D.name)}`);
+        if (!save.stickers.includes(tr.i)) { save.stickers.push(tr.i); persist(); }
         speak(`Next stop, ${D.name}!`);
         updateJourney(0, clock.elapsedTime);
         fade(false);
@@ -1552,7 +1718,7 @@
         if (c.life <= 0 || c.m.position.y < 0) { c.life = 0; c.m.visible = false; }
       });
       boards.forEach((b, i) => {
-        const on = i === boardBounce && (state === 'arrived' || state === 'ask');
+        const on = i === boardBounce && (state === 'arrived' || state === 'ask' || state === 'intro');
         const k = on ? Math.abs(Math.sin(time * 6)) : 0;
         b.scale.setScalar(1 + k * .18); b.position.y = BOARD_Y - .75 - k * .25;
       });
