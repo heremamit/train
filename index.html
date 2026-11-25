@@ -50,6 +50,13 @@
   #card.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   #card.big { font-size: clamp(110px, 26vw, 240px); color: #ffd600; -webkit-text-stroke: 10px #1f2d50; paint-order: stroke fill; }
   #bubble { cursor: pointer; }
+  #card.err { color: #ff5247; -webkit-text-stroke: 8px #fff; paint-order: stroke fill; }
+  #oops { position: fixed; inset: 0; pointer-events: none; z-index: 4; opacity: 0; background: radial-gradient(ellipse at center, rgba(229,57,53,0) 45%, rgba(229,57,53,.6) 100%); }
+  #oops.on { animation: oops 1.1s; }
+  @keyframes oops { 0% { opacity: 0; } 12% { opacity: 1; } 30% { opacity: .45; } 45% { opacity: 1; } 100% { opacity: 0; } }
+  #pad button.wrong { position: relative; background: #7d838a !important; color: rgba(255,255,255,.35); text-shadow: none; }
+  #pad button.wrong::after { content: '✕'; position: absolute; inset: 0; display: grid; place-items: center; color: #ff3b30; font-size: 1.35em;
+    -webkit-text-stroke: 5px #fff; paint-order: stroke fill; text-shadow: none; }
   #balloons { position: fixed; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
   .balloon { position: absolute; bottom: -190px; width: clamp(86px, 13vw, 128px); height: clamp(104px, 15.6vw, 154px); border: none;
     border-radius: 50% 50% 50% 50% / 46% 46% 54% 54%; color: #fff; font: inherit; font-size: clamp(46px, 7vw, 70px); text-shadow: 0 2px 0 rgba(0,0,0,.3);
@@ -97,6 +104,7 @@
   <div id="pad" class="off"></div>
   <div id="balloons"></div>
   <div id="card"></div>
+  <div id="oops"></div>
   <div id="fade"></div>
   <div id="start"><div class="card">
     <h1><span class="vicon">🚆</span> <span id="title">Number Train</span></h1>
@@ -1120,7 +1128,7 @@
     }
     const horn = () => { for (const d of [0, .75]) { tone(311, d ? 1.0 : .55, 'sawtooth', .08, d, 0, 1400); tone(370, d ? 1.0 : .55, 'sawtooth', .07, d, 0, 1400); } };
     const ding = () => [523, 659, 784, 1047].forEach((f, k) => tone(f, .55, 'sine', .18, k * .16));
-    const soft = () => { tone(392, .16, 'sine', .14); tone(311, .24, 'sine', .14, .17); };   // gentle 'uh-oh'
+    const buzz = () => { for (const d of [0, .2]) { tone(185, .17, 'sawtooth', .1, d, -30, 650); tone(139, .17, 'square', .05, d, -20, 500); } };   // 'wrong!'
     const boing = (f = 260) => tone(f, .32, 'sine', .16, 0, f * 1.4);
     const giggle = () => [0, .09, .18].forEach((d, k) => tone(820 + k * 140 + Math.random() * 80, .1, 'triangle', .1, d, 160));
     const popSound = () => { tone(1000, .09, 'square', .09, 0, -700); tone(180, .12, 'sine', .15, .01, -80); };
@@ -1216,7 +1224,7 @@
     // ================= UI =================
     const pad = document.getElementById('pad');
     const sayEl = document.getElementById('say'), bnum = document.getElementById('bnum'), bubbleEl = document.getElementById('bubble');
-    const tripEl = document.getElementById('tripStars');
+    const tripEl = document.getElementById('tripStars'), oopsEl = document.getElementById('oops');
     const buttons = [];
     for (let i = 0; i < N; i++) {
       const b = document.createElement('button');
@@ -1284,7 +1292,7 @@
       target = pickTarget(); lastTarget = target; state = 'ask'; boardBounce = -1;
       // once a number is well known, sometimes ask by voice only: hear "three", find 3
       mode = save.stats[target].streak >= 3 && Math.random() < .6 ? 'hear' : 'see'; revealed = mode === 'see';
-      buttons.forEach(b => b.classList.remove('hint'));
+      buttons.forEach(b => b.classList.remove('hint', 'wrong'));
       pad.classList.remove('off');
       ask(); nudge(0);
     }
@@ -1313,13 +1321,16 @@
         // a wrong number is a failed try: show which one was meant, then ask for a different number
         clearTimeout(nudgeT);
         st.miss++; st.streak = 0; persist();
-        btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
-        soft(); tr.wobble = .7;
+        // the error: a red flash, a big cross, a buzz, and a cross on the button that was tapped
+        btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake', 'wrong');
+        oopsEl.classList.remove('on'); void oopsEl.offsetWidth; oopsEl.classList.add('on');
+        showCard('❌ Oops!', 1500, true);
+        buzz(); tr.wobble = .7;
         state = 'miss'; revealed = true;
-        showBubble(`That's ${n}. This is`, target);
-        speak(`That is ${n}. This is ${target}.`);
+        showBubble(`❌ Oops! That's ${n}. This is`, target);
+        speak(`Oops! That is ${n}. This is ${target}.`);
         hint();
-        setTimeout(() => { if (state === 'miss') newRound(); }, 3400);
+        setTimeout(() => { if (state === 'miss') newRound(); }, 3800);
       }
     }
 
@@ -1953,8 +1964,8 @@
     const J_CACHE = {};
     const fadeEl = document.getElementById('fade'), cardEl = document.getElementById('card');
     const fade = on => fadeEl.style.opacity = on ? 1 : 0;
-    function showCard(text, ms = 2600) {
-      cardEl.textContent = text; cardEl.classList.toggle('big', text.length <= 2); cardEl.classList.add('show');
+    function showCard(text, ms = 2600, err = false) {
+      cardEl.textContent = text; cardEl.classList.toggle('big', text.length <= 2); cardEl.classList.toggle('err', err); cardEl.classList.add('show');
       clearTimeout(showCard.t); showCard.t = setTimeout(() => cardEl.classList.remove('show'), ms);
     }
     const cap = s => s.replace(/^the /, '').replace(/^./, c => c.toUpperCase());
