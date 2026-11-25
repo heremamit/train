@@ -50,6 +50,17 @@
   #card.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   #card.big { font-size: clamp(110px, 26vw, 240px); color: #ffd600; -webkit-text-stroke: 10px #1f2d50; paint-order: stroke fill; }
   #bubble { cursor: pointer; }
+  #balloons { position: fixed; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+  .balloon { position: absolute; bottom: -190px; width: clamp(86px, 13vw, 128px); height: clamp(104px, 15.6vw, 154px); border: none;
+    border-radius: 50% 50% 50% 50% / 46% 46% 54% 54%; color: #fff; font: inherit; font-size: clamp(46px, 7vw, 70px); text-shadow: 0 2px 0 rgba(0,0,0,.3);
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.8), rgba(255,255,255,0) 30%), var(--c); box-shadow: inset -8px -10px 0 rgba(0,0,0,.13);
+    pointer-events: auto; cursor: pointer; touch-action: none; animation: rise linear forwards; transition: scale .22s, opacity .22s; }
+  .balloon::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 64px; background: rgba(255,255,255,.85); }
+  .balloon.pop { scale: 1.6; opacity: 0; animation-play-state: paused; pointer-events: none; }
+  @keyframes rise { 0% { transform: translate(0, 0); } 25% { transform: translate(20px, -30vh); } 50% { transform: translate(-16px, -62vh); }
+    75% { transform: translate(14px, -92vh); } 100% { transform: translate(0, calc(-100vh - 400px)); } }
+  .fly { position: fixed; left: 50%; top: 45%; font-size: 96px; margin: -48px 0 0 -48px; z-index: 6; pointer-events: none;
+    transition: transform .8s cubic-bezier(.5, -.4, .6, 1); }
   #gear, #skip { position: fixed; top: 16px; width: 48px; height: 48px; border-radius: 50%; border: none; background: rgba(255,255,255,.7);
     font-size: 20px; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,.1); opacity: .75; touch-action: none; }
   #gear { left: 74px; } #skip { left: 132px; display: none; }
@@ -60,6 +71,10 @@
   #stickers { margin-top: 20px; font-size: 30px; letter-spacing: 4px; }
   #stickers span { opacity: .18; filter: grayscale(1); } #stickers span.got { opacity: 1; filter: none; }
   .small { font-size: 13px !important; color: #888 !important; margin: 12px 0 0 !important; }
+  .pick { margin-top: 18px; }
+  #vehicle, #pvehicle { font: inherit; font-size: 24px; padding: 10px 18px; border-radius: 18px; border: 3px solid #cfd8dc; background: #fff; color: #333; cursor: pointer; }
+  #pvehicle { font-size: 15px; padding: 6px 10px; border-width: 2px; border-radius: 12px; }
+  #pvehicle:disabled { opacity: .5; cursor: default; }
   #parent { position: fixed; inset: 0; display: none; place-items: center; background: rgba(10, 30, 50, .6); z-index: 20; }
   #parent.open { display: grid; }
   #parent .card { background: #fff; border-radius: 24px; padding: 24px 28px; width: min(440px, calc(100vw - 32px)); font-family: system-ui, sans-serif; color: #333; }
@@ -74,26 +89,34 @@
 </style>
 </head>
 <body>
-  <div id="bubble">🚆 <span id="say">Get ready…</span> <span class="num" id="bnum">?</span></div>
-  <div id="stars"><span id="tripStars">☆☆☆</span> 🚆</div>
+  <div id="bubble"><span class="vicon">🚆</span> <span id="say">Get ready…</span> <span class="num" id="bnum">?</span></div>
+  <div id="stars"><span id="tripStars">☆☆☆</span> <span class="vicon">🚆</span></div>
   <button id="mute" aria-label="Sound on/off">🔊</button>
   <button id="gear" aria-label="For grown-ups: press and hold" title="For grown-ups: press and hold">⚙️</button>
   <button id="skip" aria-label="Skip the trip: press and hold" title="Skip the trip: press and hold">⏭</button>
   <div id="pad" class="off"></div>
+  <div id="balloons"></div>
   <div id="card"></div>
   <div id="fade"></div>
   <div id="start"><div class="card">
-    <h1>🚆 Number Train</h1>
+    <h1><span class="vicon">🚆</span> <span id="title">Number Train</span></h1>
     <button id="play" aria-label="Play">▶</button>
+    <div class="pick"><select id="vehicle" aria-label="Choose train or flight">
+      <option value="train">🚆 Train</option><option value="plane">✈️ Flight</option>
+    </select></div>
     <div id="stickers"></div>
     <p class="small">Learn numbers 1–9 · turn the sound on 🔊 · grown-ups: hold ⚙️ for settings</p>
   </div></div>
   <div id="parent"><div class="card">
     <h2>For grown-ups</h2>
+    <div class="row">Ride: <select id="pvehicle" aria-label="Choose train or flight">
+      <option value="train">🚆 Train</option><option value="plane">✈️ Flight</option>
+    </select><span id="pvnote" style="font-size:12px;color:#888"></span></div>
     <div class="row">Numbers in play: <button data-max="3">1–3</button><button data-max="5">1–5</button><button data-max="9">1–9</button><span id="pmax"></span></div>
     <div id="report"></div>
     <p class="small">Green = knows it · yellow = still learning · grey = not started. Under each number: right first time / mistakes. A new number is added automatically once the current ones are known.</p>
     <div class="row"><label><input type="checkbox" id="ptrips"> Go on a trip after every 3 right answers</label></div>
+    <div class="row"><label><input type="checkbox" id="pmusic"> Background music</label></div>
     <div class="row"><button id="preset">Reset progress</button><span style="flex:1"></span><button id="pclose" class="on">Done</button></div>
   </div></div>
 
@@ -125,6 +148,9 @@
     const S0 = 16, S_END = 52.5;                   // engine centre z = Z_START - s  (25 waiting, -11.5 at platform)
     const P_Z0 = 3.6, P_Z1 = -16;
     const WW = N * SP / 2 + 6;                     // half width of the tunnel wall
+    // flight mode: the same nine lanes are airstrips. A plane's centre sits P_OFF behind where a train's engine would be.
+    const P_OFF = 4, STAND_Z = Z_START - S_END + P_OFF, DOOR_Z = STAND_Z - 2.02;
+    let air = false;                               // false = trains on tracks, true = planes on airstrips
 
     // ================= renderer + post-processing =================
     const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
@@ -153,7 +179,10 @@
     const sstep = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
     const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .8, ...o });
     const toy = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: .45, metalness: 0, clearcoat: .4, clearcoatRoughness: .3, ...o });
-    function mesh(geo, mat, x = 0, y = 0, z = 0, parent = scene, shadow = true) {
+    // the station is built in three parts: shared things in the scene, the railway in railG, the airport in airG
+    const railG = new THREE.Group(), airG = new THREE.Group(); scene.add(railG, airG);
+    let ROOT = scene;
+    function mesh(geo, mat, x = 0, y = 0, z = 0, parent = ROOT, shadow = true) {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true;
       parent.add(m); return m;
@@ -404,6 +433,7 @@
     scene.add(buildTerrain(1500, 200, mainH, (c, h) => mainRamp(c, h)));
 
     // hillside the tunnels go into
+    ROOT = railG;
     function ridgeH(x, z) {
       const zr = z - (Z_START + 1.5), ax = Math.abs(x);
       if (zr < 0 || zr > 60 || ax > 75) return 0;
@@ -422,7 +452,7 @@
       }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
       const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, map: detailTex, bumpMap: detailTex, bumpScale: 1.2, roughness: 1 }));
-      m.receiveShadow = m.castShadow = true; scene.add(m);
+      m.receiveShadow = m.castShadow = true; ROOT.add(m);
     }
     // stone retaining wall with nine tunnel portals
     {
@@ -438,18 +468,20 @@
       }
       mesh(new THREE.ExtrudeGeometry(shape, { depth: 1.4, bevelEnabled: false }), stone, 0, 0, Z_START + .2);
       mesh(new THREE.BoxGeometry(WW * 2 + .6, .4, 1.9), trim, 0, 7.55, Z_START + .9);
-      const dark = mesh(new THREE.PlaneGeometry(WW * 2, 7.4), new THREE.MeshBasicMaterial({ color: '#000000' }), 0, 3.7, Z_START + 1.55, scene, false);
+      const dark = mesh(new THREE.PlaneGeometry(WW * 2, 7.4), new THREE.MeshBasicMaterial({ color: '#000000' }), 0, 3.7, Z_START + 1.55, ROOT, false);
       dark.rotation.y = Math.PI;
     }
-    // trees & rocks
+    // trees & rocks (kept clear of the tracks, the station building, the control tower and the hangar)
     for (let k = 0; k < 150; k++) {
       let x, z;
       do { x = rnd(-120, 120); z = rnd(-75, 125); }
-      while ((Math.abs(x) < 33 && z > -30 && z < Z_START + 3) || (Math.abs(x - 36) < 9 && Math.abs(z + 7) < 13));
+      while ((Math.abs(x) < 33 && z > -30 && z < Z_START + 3) || (Math.abs(x - 37) < 10 && z > -21 && z < 30) || (Math.abs(x + 40) < 10 && Math.abs(z - 24) < 10));
       const y = Math.max(mainH(x, z), ridgeH(x, z));
-      if (k % 9 === 0) rock(scene, x, y, z, rnd(.6, 1.6));
-      else if (k % 3) broadleaf(scene, x, y, z, rnd(1, 1.7));
-      else pine(scene, x, y, z, rnd(1.1, 1.8));
+      // trees on the tunnel hill, or where planes come in to land, belong to the railway only
+      const par = ridgeH(x, z) > .05 || (Math.abs(x) < 33 && z > 44) ? railG : scene;
+      if (k % 9 === 0) rock(par, x, y, z, rnd(.6, 1.6));
+      else if (k % 3) broadleaf(par, x, y, z, rnd(1, 1.7));
+      else pine(par, x, y, z, rnd(1.1, 1.8));
     }
     const mainClouds = addClouds(scene, 12, (p, k) => { const a = rnd(.15, Math.PI - .15), r = rnd(500, 900); p.set(Math.cos(a) * r, rnd(150, 300), Math.sin(a) * r); });
 
@@ -467,40 +499,41 @@
     const rails = [];
     for (let i = 0; i < N; i++) {
       const x = xOf(i), zMid = (Z_START + Z_END) / 2;
-      mesh(ballastGeo, ballastMat, x, 0, Z_END, scene, false);
-      rails.push([-.6, .6].map(o => { mesh(railFoot, railMat, x + o, .345, zMid, scene, false); return mesh(railGeo, railMat, x + o, RAIL_TOP - .08, zMid); }));
+      mesh(ballastGeo, ballastMat, x, 0, Z_END, ROOT, false);
+      rails.push([-.6, .6].map(o => { mesh(railFoot, railMat, x + o, .345, zMid, ROOT, false); return mesh(railGeo, railMat, x + o, RAIL_TOP - .08, zMid); }));
       for (let k = 0; k < perTrack; k++) {
         dm.position.set(x, .28, Z_START - .3 - k * sleeperGap); dm.updateMatrix(); sleepers.setMatrixAt(i * perTrack + k, dm.matrix);
       }
-      const b = new THREE.Group(); b.position.set(x, RAIL_TOP, Z_END + .3); scene.add(b);
+      const b = new THREE.Group(); b.position.set(x, RAIL_TOP, Z_END + .3); ROOT.add(b);
       mesh(new THREE.BoxGeometry(2.2, .9, .5), std('#9a1f1f', { roughness: .5 }), 0, .6, 0, b);
       mesh(new THREE.BoxGeometry(2.3, .22, .56), std('#f4f4f4', { roughness: .5 }), 0, .95, 0, b);
       for (const o of [-.6, .6]) { const p = mesh(new THREE.CylinderGeometry(.17, .17, .3, 12), std('#2b2b2b', { metalness: .8, roughness: .3 }), o, .6, .38, b); p.rotation.x = Math.PI / 2; }
     }
-    sleepers.receiveShadow = true; scene.add(sleepers);
+    sleepers.receiveShadow = true; ROOT.add(sleepers);
     {
       const yt = gravelTex.clone(); yt.repeat.set(WW * 2 / 6, (L + 2.5) / 6); yt.needsUpdate = true;
-      const yard = mesh(new THREE.PlaneGeometry(WW * 2, L + 2.5), std('#b9b2a6', { map: yt, roughness: 1 }), 0, .03, (Z_START + Z_END) / 2 - .9, scene, false);
+      const yard = mesh(new THREE.PlaneGeometry(WW * 2, L + 2.5), std('#b9b2a6', { map: yt, roughness: 1 }), 0, .03, (Z_START + Z_END) / 2 - .9, ROOT, false);
       yard.rotation.x = -Math.PI / 2;
     }
-    const highlight = (i, on) => rails[i].forEach(r => r.material = on ? goldMat : railMat);
+    const highlight = (i, on) => { rails[i].forEach(r => r.material = on ? goldMat : railMat); airLines[i].material = on ? goldMat : airPaint; };
 
     // signals (lamps face the player)
     const steelMat = std('#4b5560', { metalness: .7, roughness: .38 });
     const signals = [];
     for (let i = 0; i < N; i++) {
-      const g = new THREE.Group(); g.position.set(xOf(i) + 1.8, 0, 19); scene.add(g);
+      const g = new THREE.Group(); g.position.set(xOf(i) + 1.8, 0, 19); ROOT.add(g);
       mesh(new THREE.CylinderGeometry(.07, .09, 3.8, 10), steelMat, 0, 1.9, 0, g);
       mesh(new RoundedBoxGeometry(.5, 1.15, .32, 2, .08), std('#17191b', { roughness: .5 }), 0, 4.1, 0, g);
       mesh(new THREE.BoxGeometry(.62, .06, .5), std('#17191b'), 0, 4.72, -.1, g);
       const red = mesh(new THREE.SphereGeometry(.15, 16, 10), std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 14 }), 0, 4.38, -.16, g, false);
       const green = mesh(new THREE.SphereGeometry(.15, 16, 10), std('#1d3b22', { emissive: '#22ff66', emissiveIntensity: 0 }), 0, 3.86, -.16, g, false);
-      signals.push({ red, green });
+      signals.push({ red, green, k: 1 });
     }
     function setSignal(i, go) {
-      const s = signals[i];
-      s.red.material.emissiveIntensity = go ? 0 : 14; s.red.material.color.set(go ? '#3b1a17' : '#ff2a1a');
-      s.green.material.emissiveIntensity = go ? 10 : 0; s.green.material.color.set(go ? '#22ff66' : '#1d3b22');
+      for (const s of [signals[i], airSignals[i]]) {             // the track's signal and the airstrip's stop bar
+        s.red.material.emissiveIntensity = go ? 0 : 14 * s.k; s.red.material.color.set(go ? '#3b1a17' : '#ff2a1a');
+        s.green.material.emissiveIntensity = go ? 10 * s.k : 0; s.green.material.color.set(go ? '#22ff66' : '#1d3b22');
+      }
     }
 
     // ================= platforms & number boards =================
@@ -513,25 +546,26 @@
       const left = j === 0 ? xOf(0) + 6 : xOf(j - 1) - 1.3, right = j === N ? xOf(N - 1) - 6 : xOf(j) + 1.3;
       const w = Math.abs(left - right), cx = (left + right) / 2;
       mesh(new THREE.BoxGeometry(w, PLAT_H, P_LEN), platMat, cx, PLAT_H / 2, P_MID);
-      mesh(new THREE.BoxGeometry(w + .12, .12, P_LEN + .12), std('#8e8b85', { roughness: .9 }), cx, PLAT_H - .05, P_MID, scene, false);
+      mesh(new THREE.BoxGeometry(w + .12, .12, P_LEN + .12), std('#8e8b85', { roughness: .9 }), cx, PLAT_H - .05, P_MID, ROOT, false);
       for (const [edge, s] of [[left, -1], [right, 1]]) {
         if ((s === -1 && j === 0) || (s === 1 && j === N)) continue;
-        mesh(new THREE.BoxGeometry(.1, .02, P_LEN - .2), whiteLine, edge + s * .1, PLAT_H + .02, P_MID, scene, false);
-        mesh(new THREE.BoxGeometry(.32, .025, P_LEN - .2), tactileMat, edge + s * .42, PLAT_H + .02, P_MID, scene, false);
+        mesh(new THREE.BoxGeometry(.1, .02, P_LEN - .2), whiteLine, edge + s * .1, PLAT_H + .02, P_MID, ROOT, false);
+        mesh(new THREE.BoxGeometry(.32, .025, P_LEN - .2), tactileMat, edge + s * .42, PLAT_H + .02, P_MID, ROOT, false);
       }
       for (const z of [2.7, -10.6]) {
         mesh(new THREE.CylinderGeometry(.06, .08, 4, 10), steelMat, cx, PLAT_H + 2, z);
         mesh(new THREE.BoxGeometry(1.5, .06, .06), steelMat, cx, PLAT_H + 4, z);
-        for (const s of [-1, 1]) mesh(new RoundedBoxGeometry(.5, .1, .24, 2, .04), lampHeadMat, cx + s * .7, PLAT_H + 3.94, z, scene, false);
+        for (const s of [-1, 1]) mesh(new RoundedBoxGeometry(.5, .1, .24, 2, .04), lampHeadMat, cx + s * .7, PLAT_H + 3.94, z, ROOT, false);
       }
       if (w > 1.8) {
         mesh(new THREE.BoxGeometry(.5, .07, 1.7), woodMat, cx, PLAT_H + .46, -12);
         mesh(new THREE.BoxGeometry(.06, .45, 1.7), woodMat, cx + (j < 5 ? .25 : -.25), PLAT_H + .74, -12);
         for (const z of [-11.3, -12.7]) mesh(new THREE.BoxGeometry(.42, .44, .06), steelMat, cx, PLAT_H + .22, z);
         mesh(new THREE.CylinderGeometry(.36, .28, .5, 14), potMat, cx, PLAT_H + .25, -14.6);
-        const bush = sh(new THREE.Mesh(BLOBS[j % 4], leafMat(GREENS[j % 4]))); bush.position.set(cx, PLAT_H + .85, -14.6); bush.scale.setScalar(.48); scene.add(bush);
+        const bush = sh(new THREE.Mesh(BLOBS[j % 4], leafMat(GREENS[j % 4]))); bush.position.set(cx, PLAT_H + .85, -14.6); bush.scale.setScalar(.48); ROOT.add(bush);
       }
     }
+    ROOT = scene;
     const boards = [];
     const GANTRY_Z = P_Z0 + .9, BOARD_Y = 7.7;
     mesh(new THREE.BoxGeometry(N * SP + 4.6, .3, .3), steelMat, 0, BOARD_Y + 1.2, GANTRY_Z);
@@ -549,6 +583,7 @@
     }
 
     // brick station building beside the platforms
+    let signRail, signAir;
     {
       const g = new THREE.Group(); g.position.set(xOf(0) + 16.5, 0, -7); g.rotation.y = -Math.PI / 2; scene.add(g);
       const W = 18, slate = std('#474d55', { roughness: .6, metalness: .2 }), cream = std('#e6dfd3', { roughness: .85 });
@@ -564,12 +599,15 @@
       mesh(new THREE.BoxGeometry(2.2, 3.4, .14), cream, 0, 1.7, 4.0, g, false);
       mesh(new THREE.BoxGeometry(1.9, 3.2, .16), std('#3e2a1c', { roughness: .6 }), 0, 1.6, 4.02, g, false);
       mesh(new THREE.BoxGeometry(W + 1, .12, 2.4), slate, 0, 3.9 + 1.4, 5.1, g).rotation.x = .12;
-      const nameTex = canvasTex(1024, 128, (c, w, h) => {
-        c.fillStyle = '#0d3b66'; c.fillRect(0, 0, w, h);
-        c.fillStyle = '#fff'; c.font = 'bold 84px "Arial Rounded MT Bold", Arial'; c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText('TOY TOWN CENTRAL', w / 2, h / 2 + 4);
-      });
-      mesh(new THREE.BoxGeometry(10, 1.25, .16), [boardBack, boardBack, boardBack, boardBack, new THREE.MeshStandardMaterial({ map: nameTex, roughness: .5 }), boardBack], 0, 6.0, 4.05, g, false);
+      const nameSign = text => {
+        const nameTex = canvasTex(1024, 128, (c, w, h) => {
+          c.fillStyle = '#0d3b66'; c.fillRect(0, 0, w, h);
+          c.fillStyle = '#fff'; c.font = 'bold 84px "Arial Rounded MT Bold", Arial'; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText(text, w / 2, h / 2 + 4);
+        });
+        return mesh(new THREE.BoxGeometry(10, 1.25, .16), [boardBack, boardBack, boardBack, boardBack, new THREE.MeshStandardMaterial({ map: nameTex, roughness: .5 }), boardBack], 0, 6.0, 4.05, g, false);
+      };
+      signRail = nameSign('TOY TOWN CENTRAL'); signAir = nameSign('TOY TOWN AIRPORT');
       const clockTex = canvasTex(256, 256, c => {
         c.fillStyle = '#fdfbf5'; c.beginPath(); c.arc(128, 128, 122, 0, 7); c.fill();
         c.lineWidth = 10; c.strokeStyle = '#222'; c.stroke();
@@ -579,6 +617,84 @@
       mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshStandardMaterial({ map: clockTex, roughness: .4 }), 0, 8.2, 2.5, g, false);
       mesh(new THREE.BoxGeometry(2.6, 2.6, .5), std('#ffffff', { map: brickTex, roughness: .95 }), 0, 8.2, 2.2, g);
     }
+
+    // ================= airport: nine airstrips, shown instead of the tracks in flight mode =================
+    const airLines = [], airSignals = [], airUpdate = [];
+    const airPaint = std('#f1f1ee', { roughness: .75 });
+    ROOT = airG;
+    {
+      const A0 = -30, A1 = 58, AL = A1 - A0, AM = (A0 + A1) / 2;      // the strips run from behind the camera to the far threshold
+      const asphalt = canvasTex(256, 256, (c, w, h) => speckle(c, w, h, '#4b4f55', ['#3f4348', '#5a5e64', '#46494e', '#62666c'], 6000, 3), (WW * 2 + 4) / 8, AL / 8);
+      mesh(new THREE.PlaneGeometry(WW * 2 + 4, AL), std('#ffffff', { map: asphalt, roughness: .95 }), 0, .03, AM, ROOT, false).rotation.x = -Math.PI / 2;
+      const yellow = std('#f2c318', { roughness: .75 }), walkMat = std('#b4b1a9', { roughness: .9 }), stairMat = std('#eef1f3', { roughness: .6 });
+      const dashGeo = new THREE.BoxGeometry(.26, .02, 2.4), barGeo = new THREE.BoxGeometry(2.8, .05, .2);
+      const keys = new THREE.InstancedMesh(new THREE.BoxGeometry(.42, .02, 3), airPaint, N * 8);
+      const lamps = new THREE.InstancedMesh(new THREE.SphereGeometry(.09, 8, 6), std('#3fa9ff', { emissive: '#2f8fff', emissiveIntensity: 7 }), (N + 1) * 14);
+      let nk = 0, nl = 0;
+      const put = (im, k, x, y, z) => { dm.position.set(x, y, z); dm.updateMatrix(); im.setMatrixAt(k, dm.matrix); };
+      for (let i = 0; i < N; i++) {
+        const x = xOf(i);
+        // dashed centre line (it lights up gold for the chosen plane), with a gap for the painted number
+        const zs = []; for (let z = A0 + 3; z < A1 - 6; z += 5.2) if (Math.abs(z - 17.4) > 2.6) zs.push(z);
+        const line = new THREE.InstancedMesh(dashGeo, airPaint, zs.length);
+        zs.forEach((z, k) => put(line, k, x, .05, z));
+        line.receiveShadow = true; ROOT.add(line); airLines.push(line);
+        for (const z of [A1 - 3.2, -14.6]) for (let k = 0; k < 4; k++) put(keys, nk++, x - 1.2 + k * .8, .05, z);     // threshold stripes
+        // the strip's number painted on the ground, the right way up for the player
+        const numTex = canvasTex(256, 256, (c, w, h) => {
+          c.font = `bold ${h * .86}px "Arial Rounded MT Bold", Arial, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillStyle = '#f4f4f0'; c.fillText(i + 1, w / 2, h / 2 + 10);
+        });
+        const ng = new THREE.PlaneGeometry(3.4, 3.4); ng.rotateX(-Math.PI / 2); ng.rotateY(Math.PI);
+        mesh(ng, new THREE.MeshStandardMaterial({ map: numTex, transparent: true, roughness: .8 }), x, .06, 17.4, ROOT, false);
+        // stop bar across the strip: red until the plane may go
+        const red = mesh(barGeo, std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 5 }), x, .06, 21.6, ROOT, false);
+        const green = mesh(barGeo, std('#1d3b22', { emissive: '#22ff66', emissiveIntensity: 0 }), x, .06, 21.2, ROOT, false);
+        airSignals.push({ red, green, k: .36 });
+        // boarding stairs waiting at the stand, on the passengers' side
+        const st = new THREE.Group(); st.position.set(x - 2.3, .03, DOOR_Z); ROOT.add(st);
+        for (let j = 0; j < 5; j++) mesh(new THREE.BoxGeometry(.28, .28 * (j + 1), 1), stairMat, .14 + j * .28, .14 * (j + 1), 0, st);
+        for (const s of [-.5, .5]) {
+          mesh(new THREE.BoxGeometry(1.7, .06, .06), yellow, .6, 1.45, s, st).rotation.z = Math.PI / 4;
+          for (const [px, py] of [[.08, .58], [1.12, 1.68]]) mesh(new THREE.BoxGeometry(.05, .62, .05), yellow, px, py, s, st, false);
+        }
+      }
+      for (let j = 0; j <= N; j++) {
+        const bx = xOf(0) + SP / 2 - j * SP;                         // the line between two strips
+        mesh(new THREE.BoxGeometry(.12, .02, AL), yellow, bx, .045, AM, ROOT, false);
+        mesh(new THREE.BoxGeometry(1.5, .05, 16), walkMat, bx, .045, -3.6, ROOT, false);        // walkway where the passengers wait
+        for (let z = A0 + 4; z < A1; z += 6.2) if (z < -13 || z > 6) put(lamps, nl++, bx, .1, z);
+      }
+      keys.count = nk; lamps.count = nl; keys.receiveShadow = true; ROOT.add(keys, lamps);
+      // control tower with a turning radar
+      const tw = new THREE.Group(); tw.position.set(xOf(0) + 17.5, 0, 22); ROOT.add(tw);
+      mesh(new THREE.CylinderGeometry(1.2, 1.6, 11, 20), std('#e4e1da', { roughness: .85 }), 0, 5.5, 0, tw);
+      mesh(new THREE.CylinderGeometry(2.7, 2.1, .5, 24), std('#8e8b85', { roughness: .8 }), 0, 11.2, 0, tw);
+      mesh(new THREE.CylinderGeometry(2.6, 2.2, 1.7, 24), new THREE.MeshPhysicalMaterial({ color: '#16303f', metalness: .6, roughness: .08 }), 0, 12.3, 0, tw);
+      mesh(new THREE.CylinderGeometry(2.9, 2.9, .3, 24), std('#d84a3a', { roughness: .6 }), 0, 13.3, 0, tw);
+      mesh(new THREE.CylinderGeometry(.05, .05, 2.2, 6), steelMat, 0, 14.5, 0, tw);
+      mesh(new THREE.SphereGeometry(.16, 12, 8), std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 8 }), 0, 15.6, 0, tw, false);
+      const radar = new THREE.Group(); radar.position.set(1.5, 13.45, 0); tw.add(radar);
+      mesh(new THREE.CylinderGeometry(.05, .05, .5, 6), steelMat, 0, .25, 0, radar); mesh(new THREE.BoxGeometry(1.8, .7, .08), steelMat, 0, .8, 0, radar);
+      airUpdate.push(dt => radar.rotation.y += dt * 1.6);
+      // hangar
+      const hg = new THREE.Group(); hg.position.set(xOf(N - 1) - 20, 0, 24); ROOT.add(hg);
+      mesh(new THREE.CylinderGeometry(6, 6, 13, 28, 1, false, 0, Math.PI), std('#c9d2d8', { metalness: .5, roughness: .45 }), 0, 0, 0, hg).rotation.z = Math.PI / 2;
+      mesh(new THREE.BoxGeometry(.2, 4.6, 8.4), std('#3d4b55', { metalness: .4, roughness: .5 }), 6.52, 2.3, 0, hg, false);
+      mesh(new THREE.BoxGeometry(.22, .3, 8.8), yellow, 6.53, 4.75, 0, hg, false);
+      // windsock
+      const ws = new THREE.Group(); ws.position.set(xOf(0) + 9.3, 0, 40); ROOT.add(ws);
+      mesh(new THREE.CylinderGeometry(.05, .07, 4.6, 8), steelMat, 0, 2.3, 0, ws);
+      const sock = new THREE.Group(); sock.position.y = 4.5; ws.add(sock);
+      mesh(GEO.cone, std('#ff7a1a', { roughness: .8 }), .85, 0, 0, sock).scale.set(.32, 1.7, .32); sock.children[0].rotation.z = -Math.PI / 2;
+      airUpdate.push((dt, time) => { sock.rotation.y = .5 + Math.sin(time * .9) * .25; sock.rotation.z = -.12 + Math.sin(time * 2.3) * .05; });
+      // trees where the tunnel hill stands in train mode, clear of the landing path
+      for (let k = 0; k < 30; k++) {
+        const x = rnd(34, 115) * (k % 2 ? 1 : -1), z = rnd(44, 104);
+        (k % 3 ? broadleaf : pine)(ROOT, x, mainH(x, z), z, rnd(1.1, 1.7));
+      }
+    }
+    ROOT = scene;
 
     // ================= trains: realistic bodies, friendly faces =================
     const LIVERY = [
@@ -746,25 +862,150 @@
         cars.push(c);
       }
       cars.forEach(c => { c.rotation.y = Math.PI; c.userData.idx = i; scene.add(c); });
-      return { i, x: xOf(i), cars, e, wheels, riders, face: { eyes, mouth }, lampMat, s: S0, anim: null, wobble: 0, happy: 0, blinkT: rnd(1, 4), blink: 0 };
+      return { i, x: xOf(i), off: 0, baseY: RAIL_TOP, alt: 0, pitch: 0, cars, e, wheels, riders, face: { eyes, mouth }, lampMat, s: S0, anim: null, wobble: 0, happy: 0, hop: 0, peek: 0, blinkT: rnd(1, 4), blink: 0 };
     }
     const trains = [];
     for (let i = 0; i < N; i++) trains.push(makeTrain(i));
 
+    // ================= planes: chubby little jets with the same friendly faces =================
+    // nose at local +z like the trains; a high wing, so passengers can walk underneath it
+    const FY = 2.0, FR = 1.05, NOSE_Z = 2.4, NOSE_K = 1.25;          // fuselage centre height and radius; the nose is a stretched half ball
+    const tailLift = z => z < -1.3 ? Math.pow((-1.3 - z) / 3.15, 1.5) * .5 : 0;
+    // a patch of the fuselage skin: side = 1 or -1, up = how far above the middle, half = half its height (as angles)
+    const skin = (side, len, up, half, r = FR + .012) => {
+      const mid = side > 0 ? Math.PI / 2 + up : Math.PI * 1.5 - up;
+      const g = new THREE.CylinderGeometry(r, r, len, 10, 1, true, mid - half, half * 2); g.rotateX(Math.PI / 2); return g;
+    };
+    const flat = (pts, depth, bevel) => {                           // a wing seen from above, cut out of a thin sheet
+      const s = new THREE.Shape(); pts.forEach(([x, y, cx, cy], k) => k === 0 ? s.moveTo(x, y) : cx === undefined ? s.lineTo(x, y) : s.quadraticCurveTo(cx, cy, x, y));
+      return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, curveSegments: 8 });
+    };
+    const AG = {
+      body: (() => {
+        const pts = [];
+        for (let k = 0; k <= 14; k++) { const t = k / 14; pts.push(new THREE.Vector2(Math.max(.02, FR * Math.pow(Math.sin(t * Math.PI / 2), .75)), -4.45 + t * 3.15)); }
+        pts.push(new THREE.Vector2(FR, NOSE_Z));
+        const g = new THREE.LatheGeometry(pts, 32); g.rotateX(Math.PI / 2);
+        const p = g.attributes.position; for (let k = 0; k < p.count; k++) p.setY(k, p.getY(k) + tailLift(p.getZ(k)));
+        return g;
+      })(),
+      nose: (() => { const g = new THREE.SphereGeometry(FR, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2); g.rotateX(Math.PI / 2); g.scale(1, 1, NOSE_K); return g; })(),
+      screen: (() => { const g = new THREE.SphereGeometry(FR * 1.012, 24, 8, Math.PI * 1.5 - 1.15, 2.3, .36, .76); g.rotateX(Math.PI / 2); g.scale(1, 1, NOSE_K); return g; })(),
+      wing: (() => {
+        const g = flat([[0, .9], [2.05, .35], [2.3, -.1, 2.32, .25], [2.05, -.5, 2.28, -.48], [0, -.8], [-2.05, -.5], [-2.3, -.1, -2.28, -.48], [-2.05, .35, -2.32, .25], [0, .9]], .1, .05);
+        g.rotateX(Math.PI / 2); return g;
+      })(),
+      stab: (() => { const g = flat([[0, .45], [1.25, .1], [1.3, -.32], [0, -.4], [-1.3, -.32], [-1.25, .1], [0, .45]], .06, .03); g.rotateX(Math.PI / 2); return g; })(),
+      fin: (() => {
+        const g = flat([[-2.4, 0], [-3.7, 1.85], [-4.15, 2.05, -3.85, 2.05], [-4.5, 2.05], [-4.3, 0], [-2.4, 0]], .1, .03);
+        g.translate(0, 0, -.05); g.rotateY(-Math.PI / 2); return g;
+      })(),
+      fair: new RoundedBoxGeometry(1.25, .3, 2, 2, .12),
+      engine: (() => { const g = new THREE.CylinderGeometry(.36, .3, 1.3, 20); g.rotateX(Math.PI / 2); return g; })(),
+      pylon: new THREE.BoxGeometry(.5, .14, .75),
+      intake: new THREE.CircleGeometry(.29, 20), blade: new THREE.BoxGeometry(.56, .1, .02), hub: new THREE.SphereGeometry(.09, 10, 8),
+      wheel: new THREE.CylinderGeometry(.3, .3, .2, 18), noseWheel: new THREE.CylinderGeometry(.24, .24, .1, 16),
+      strut: new THREE.CylinderGeometry(.06, .06, .7, 8),
+      door: [1, -1].map(s => skin(s, .72, 0, .62, FR + .02)), doorWin: [1, -1].map(s => skin(s, .34, .3, .13, FR + .03)),
+      win: [1, -1].map(s => skin(s, .44, .29, .22)), stripe: [1, -1].map(s => skin(s, 3.7, 0, .07)),
+    };
+    const NAV = { '1': std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 4 }), '-1': std('#22ff66', { emissive: '#22ff66', emissiveIntensity: 4 }) };
+    // a spot on the nose: th = angle away from the nose tip, ph = angle round it (0 = top). Returns where it is and which way it faces.
+    function onNose(th, ph, lift = 0) {
+      const n = new THREE.Vector3(Math.sin(th) * Math.sin(ph), Math.sin(th) * Math.cos(ph), Math.cos(th) / NOSE_K).normalize();
+      const p = new THREE.Vector3(FR * Math.sin(th) * Math.sin(ph), FY + FR * Math.sin(th) * Math.cos(ph), NOSE_Z + NOSE_K * FR * Math.cos(th)).addScaledVector(n, lift);
+      const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(n, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)));
+      return { p, q };
+    }
+    function makePlane(i) {
+      const lv = liveryOf(i);
+      const paint = new THREE.MeshPhysicalMaterial({ color: lv.body, metalness: .2, roughness: .3, clearcoat: .8, clearcoatRoughness: .2, envMapIntensity: .75 });
+      const doorMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(lv.body).multiplyScalar(.72), metalness: .2, roughness: .32, clearcoat: 1 });
+      const trim = new THREE.MeshPhysicalMaterial({ color: lv.stripe, metalness: .1, roughness: .3, clearcoat: 1 });
+      const lampMat = new THREE.MeshStandardMaterial({ color: '#fffbe8', emissive: '#fff2c4', emissiveIntensity: .8 });
+      const wheels = [], fans = [], riders = [];
+      const root = new THREE.Group(), e = new THREE.Group(); root.add(e);
+      mesh(AG.body, paint, 0, FY, 0, e); mesh(AG.nose, paint, 0, FY, NOSE_Z, e);
+      mesh(AG.screen, TM.glass, 0, FY, NOSE_Z, e, false);
+      mesh(AG.wing, paint, 0, FY + FR + .1, .2, e); mesh(AG.fair, paint, 0, FY + FR - .06, .25, e);
+      mesh(AG.fin, paint, 0, FY + .6, 0, e); mesh(AG.stab, trim, 0, FY + 1.35, -3.85, e);
+      mesh(GEO.sph, NAV[1], 0, FY + 2.72, -4.2, e, false).scale.setScalar(.08);
+      for (const s of [1, -1]) {
+        const k = s > 0 ? 0 : 1;
+        // engines on the tail, with a turning fan
+        mesh(AG.engine, trim, s * 1.22, FY + .62, -2.45, e); mesh(AG.pylon, paint, s * .92, FY + .6, -2.45, e);
+        mesh(AG.intake, TM.dark, s * 1.22, FY + .62, -1.795, e, false);
+        mesh(AG.intake, TM.dark, s * 1.22, FY + .62, -3.105, e, false).rotation.y = Math.PI;
+        const fan = new THREE.Group(); fan.position.set(s * 1.22, FY + .62, -1.78); e.add(fan); fans.push(fan);
+        mesh(AG.blade, TM.roof, 0, 0, 0, fan, false); mesh(AG.blade, TM.roof, 0, 0, 0, fan, false).rotation.z = Math.PI / 2; mesh(AG.hub, trim, 0, 0, 0, fan, false);
+        // door, windows with room for a face at each, a stripe along the side
+        mesh(AG.door[k], doorMat, 0, FY, 2.02, e, false); mesh(AG.doorWin[k], TM.glass, 0, FY, 2.02, e, false);
+        mesh(AG.stripe[k], trim, 0, FY, .55, e, false);
+        for (const z of [1.25, .62, -.01, -.64, -1.27]) {
+          mesh(AG.win[k], TM.glass, 0, FY, z, e, false);
+          const seat = new THREE.Group(); seat.position.set(s * 1.0, FY + .3, z); seat.rotation.z = s * .29; seat.scale.setScalar(.8); e.add(seat);
+          riders.push(windowFace(seat, s * .001, 0, 0, false));
+        }
+        // landing light in the wing, coloured light on the wing tip
+        const lamp = mesh(TG.lamp, lampMat, s * .8, FY + FR, .94, e, false); lamp.rotation.x = Math.PI / 2; lamp.scale.setScalar(.6);
+        mesh(GEO.sph, NAV[s], s * 2.3, FY + FR, .15, e, false).scale.setScalar(.07);
+      }
+      // wheels: they fold away when the plane is flying
+      const gear = new THREE.Group(); e.add(gear);
+      const leg = (x, z, pairs, geo, r) => {
+        mesh(AG.strut, TM.wheel, x, .62, z, gear, false);
+        const ax = new THREE.Group(); ax.position.set(x, r, z); gear.add(ax); wheels.push(ax);
+        for (const o of pairs) mesh(geo, TM.rubber, o, 0, 0, ax).rotation.z = Math.PI / 2;
+      };
+      leg(0, 2.3, [-.11, .11], AG.noseWheel, .24); leg(-.7, -.45, [0], AG.wheel, .3); leg(.7, -.45, [0], AG.wheel, .3);
+      // face: eyes on the windscreen, smile round the tip of the nose
+      const eyes = [];
+      for (const s of [-1, 1]) {
+        const { p, q } = onNose(.74, s * .5, .02);
+        const h = new THREE.Group(); h.position.copy(p); h.quaternion.copy(q); h.scale.setScalar(.74); e.add(h);
+        const g = new THREE.Group(); h.add(g);
+        mesh(TG.eye, TM.white, 0, 0, 0, g, false).scale.set(.37, .46, .09);
+        const pu = mesh(TG.eye, TM.black, 0, -.04, .07, g, false); pu.scale.set(.17, .215, .05);
+        mesh(TG.eye, TM.glint, .07, .1, .115, g, false).scale.setScalar(.05);
+        eyes.push({ g, pupil: pu });
+        const c = onNose(.5, s * 1.75, .012), ch = mesh(TG.cheek, TM.cheek, 0, 0, 0, e, false); ch.position.copy(c.p); ch.quaternion.copy(c.q);
+      }
+      const mouth = mesh(TG.mouth, TM.mouth, 0, FY, NOSE_Z + NOSE_K * FR * .958 + .03, e, false); mouth.rotation.z = Math.PI;
+      root.rotation.y = Math.PI; root.userData.idx = i; root.visible = false; scene.add(root);
+      return { i, x: xOf(i), plane: true, off: P_OFF, baseY: .03, alt: 0, pitch: 0, cars: [root], e, wheels, fans, gear, riders, face: { eyes, mouth }, lampMat,
+               s: S0, anim: null, wobble: 0, happy: 0, hop: 0, peek: 0, blinkT: rnd(1, 4), blink: 0 };
+    }
+    const planes = [];
+    for (let i = 0; i < N; i++) planes.push(makePlane(i));
+    let fleet = trains;                                              // whichever of the two is being played with
+    const zzzTex = canvasTex(128, 128, c => {
+      c.fillStyle = '#ffffff'; c.strokeStyle = '#24467a'; c.lineWidth = 8; c.lineJoin = 'round'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      for (const [s, x, y] of [[40, 30, 98], [56, 62, 66], [76, 96, 30]]) { c.font = `bold ${s}px Arial`; c.strokeText('Z', x, y); c.fillText('Z', x, y); }
+    });
+    const zzz = trains.map(tr => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: zzzTex, depthTest: false })); s.scale.setScalar(3); s.renderOrder = 6; scene.add(s); return s; });
+
+    // a happy hop that ripples down the carriages
+    const hopY = (tr, k) => tr.hop > 0 ? Math.abs(Math.sin(tr.hop * 10 + k * .9)) * .75 * Math.min(1, tr.hop * 2.5) : 0;
     function placeTrain(tr, time, dt) {
       const moving = !!tr.anim && !(tr.anim.delay > 0);
+      tr.hop = Math.max(0, tr.hop - dt); tr.peek = Math.max(0, tr.peek - dt);
       if (!tr.inJourney) tr.cars.forEach((c, k) => {
-        c.position.set(tr.x, RAIL_TOP, Z_START - (tr.s - k * CAR_GAP));
+        c.position.set(tr.x, tr.baseY + tr.alt + hopY(tr, k), Z_START - (tr.s - k * CAR_GAP - tr.off));
         c.position.y += moving ? Math.sin(time * 21 + k * 1.3) * .008 : 0;
         c.rotation.z = moving ? Math.sin(time * 3 + k) * .006 : 0;
+        c.rotation.x = tr.pitch;
       });
+      if (tr.plane) {
+        tr.gear.visible = !tr.inJourney && tr.alt < 2.5;
+        tr.fans.forEach(f => f.rotation.z += dt * (moving || tr.inJourney ? 34 : 5));
+      }
       tr.e.rotation.y = Math.sin(tr.wobble * 28) * .07 * Math.min(1, tr.wobble * 3);
       // eyes: blink, happy squint, look around
       tr.blinkT -= dt;
       if (tr.blinkT <= 0) { tr.blink = .15; tr.blinkT = rnd(2, 5); }
       tr.blink = Math.max(0, tr.blink - dt);
       const asleep = tr.i >= save.max;                       // numbers not in play yet: the train is asleep
-      const lid = asleep ? .08 : tr.blink > 0 ? .12 : tr.happy > 0 ? .4 : 1;
+      const lid = asleep ? (tr.peek > 0 ? .5 : .08) : tr.blink > 0 ? .12 : tr.happy > 0 ? .4 : 1;
       tr.happy = Math.max(0, tr.happy - dt);
       const lx = tr.wobble > 0 ? Math.sin(time * 14) * .12 : Math.sin(time * .7 + tr.i * 1.7) * .07;
       tr.face.eyes.forEach(ey => { ey.g.scale.y += (lid - ey.g.scale.y) * Math.min(1, dt * 25); ey.pupil.position.x = lx; });
@@ -778,22 +1019,29 @@
       const n = i + 1;                               // platform 3 has 3 passengers: the number you can count
       waiting[i] = [];
       for (let k = 0; k < n; k++) {
-        const w = makePerson();
-        w.home = new THREE.Vector3(xOf(i) - 2.05 + rnd(-.12, .12), PLAT_H, 1.2 - k * 1.3);
+        const w = makePerson(); w.g.userData.person = w; w.jump = 0;
+        // on the platform beside the track, or on the walkway between two airstrips (out from under the wing)
+        w.home = air ? new THREE.Vector3(xOf(i) - 2.5 + rnd(-.1, .1), .07, 2.2 - k * 1.3) : new THREE.Vector3(xOf(i) - 2.05 + rnd(-.12, .12), PLAT_H, 1.2 - k * 1.3);
         w.g.position.copy(w.home); w.g.rotation.y = rnd(-.4, .2);
         w.full = w.g.scale.x; w.g.scale.setScalar(.001); w.state = 'appear'; w.t = -k * .1;
         scene.add(w.g); waiting[i].push(w);
       }
     }
-    for (let i = 0; i < N; i++) spawnPassengers(i);
     function boardPassengers(tr) {
+      const n = waiting[tr.i].length;
       waiting[tr.i].forEach((w, k) => {
-        w.state = 'walk'; w.t = -(2.0 + k * .75);   // one at a time, so we can count them
+        w.state = 'walk'; w.from = w.g.position.clone(); w.via = null; w.dur = 1;
+        if (tr.plane) {                             // the one nearest the stairs goes first, then up the steps to the door
+          w.t = -(1.8 + (n - 1 - k) * .62);
+          w.via = new THREE.Vector3(tr.x - 2.4, w.home.y, DOOR_Z); w.door = new THREE.Vector3(tr.x - .95, 1.45, DOOR_Z);
+          w.dur = clamp(w.from.distanceTo(w.via) / 4.5, 1, 2.4);
+          return;
+        }
+        w.t = -(1.8 + k * .62);                     // one at a time, so we can count them
         const doors = [];
         for (const cz of [Z_START - S_END + CAR_GAP, Z_START - S_END + 2 * CAR_GAP]) doors.push(cz - 1.95, cz + 1.95);
         const dz = doors.reduce((a, b) => Math.abs(b - w.home.z) < Math.abs(a - w.home.z) ? b : a);
         w.door = new THREE.Vector3(tr.x - 1.4, PLAT_H, dz);
-        w.from = w.g.position.clone();
       });
     }
     const tmpV = new THREE.Vector3();
@@ -803,7 +1051,7 @@
     }
     function updatePassengers(dt, time) {
       for (let i = 0; i < N; i++) {
-        const tr = trains[i], excited = state === 'go' && follow === tr;
+        const tr = fleet[i], excited = state === 'go' && follow === tr;
         for (const w of waiting[i]) {
           const b = w.body, [la, ra] = w.arms;
           if (w.state === 'appear') {
@@ -811,7 +1059,10 @@
             w.g.scale.setScalar(Math.max(.001, w.full * (k < 1 ? 1 + Math.sin(k * Math.PI) * .25 : 1) * k));
             if (w.t >= 1) w.state = 'wait';
           } else if (w.state === 'wait') {
-            if (excited) {
+            if (w.jump > 0) {                       // tapped: jump for joy
+              w.jump -= dt; b.position.y = Math.abs(Math.sin(w.jump * 12)) * .7 * Math.min(1, w.jump * 3);
+              la.rotation.z = -2.7; ra.rotation.z = 2.7; w.g.rotation.y += dt * 9;
+            } else if (excited) {
               b.position.y = Math.abs(Math.sin(time * 9 + w.seed)) * .3;
               la.rotation.z = -2.6 + Math.sin(time * 14 + w.seed) * .4; ra.rotation.z = 2.6 - Math.sin(time * 14 + w.seed) * .4;
             } else {
@@ -820,11 +1071,12 @@
               la.rotation.z = -.15; ra.rotation.z = wave ? 2.5 + Math.sin(time * 12) * .4 : .15;
             }
           } else if (w.state === 'walk') {
-            w.t += dt / 1.0;
+            w.t += dt / (w.t < 0 ? 1 : w.dur);
             if (w.t < 0) { b.position.y = Math.abs(Math.sin(time * 9 + w.seed)) * .25; continue; }
-            const k = Math.min(1, w.t);
-            w.g.position.lerpVectors(w.from, w.door, k);
-            w.g.rotation.y = Math.atan2(-(w.door.x - w.from.x), -(w.door.z - w.from.z));
+            const k = Math.min(1, w.t), climb = w.via && k >= .72;
+            const a = climb ? w.via : w.from, to = w.via && !climb ? w.via : w.door;
+            w.g.position.lerpVectors(a, to, !w.via ? k : climb ? (k - .72) / .28 : k / .72);
+            w.g.rotation.y = Math.atan2(-(to.x - a.x), -(to.z - a.z));
             b.position.y = Math.abs(Math.sin(time * 14 + w.seed)) * .1;
             la.rotation.z = -.2; ra.rotation.z = .2;
             la.rotation.x = Math.sin(time * 14) * .6; ra.rotation.x = -Math.sin(time * 14) * .6;
@@ -868,7 +1120,64 @@
     }
     const horn = () => { for (const d of [0, .75]) { tone(311, d ? 1.0 : .55, 'sawtooth', .08, d, 0, 1400); tone(370, d ? 1.0 : .55, 'sawtooth', .07, d, 0, 1400); } };
     const ding = () => [523, 659, 784, 1047].forEach((f, k) => tone(f, .55, 'sine', .18, k * .16));
-    const soft = () => tone(300, .25, 'sine', .14, 0, -50);          // gentle 'not that one'
+    const soft = () => { tone(392, .16, 'sine', .14); tone(311, .24, 'sine', .14, .17); };   // gentle 'uh-oh'
+    const boing = (f = 260) => tone(f, .32, 'sine', .16, 0, f * 1.4);
+    const giggle = () => [0, .09, .18].forEach((d, k) => tone(820 + k * 140 + Math.random() * 80, .1, 'triangle', .1, d, 160));
+    const popSound = () => { tone(1000, .09, 'square', .09, 0, -700); tone(180, .12, 'sine', .15, .01, -80); };
+    const yawn = () => tone(520, .7, 'sine', .12, 0, -280);
+    const tootSound = i => { for (const d of [0, .22]) { tone(250 + i * 28, .18, 'sawtooth', .07, d, 0, 1500); tone(312 + i * 35, .18, 'sawtooth', .06, d, 0, 1500); } };
+    const chime = () => { tone(659, .5, 'sine', .14); tone(523, .75, 'sine', .14, .34); };     // airport ding-dong
+    // jet engine: rushing air that rises (or falls) in pitch
+    let airBuf = null, hum = null;
+    function airNoise() {
+      if (!airBuf) { airBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate); const d = airBuf.getChannelData(0); for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1; }
+      const src = actx.createBufferSource(); src.buffer = airBuf; src.loop = true; return src;
+    }
+    function jet(dur, vol = .12, f0 = 250, f1 = 1200, delay = 0) {
+      if (!actx || muted) return;
+      const t0 = actx.currentTime + delay, src = airNoise(), f = actx.createBiquadFilter(), g = actx.createGain();
+      f.type = 'bandpass'; f.Q.value = .7; f.frequency.setValueAtTime(f0, t0); f.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + dur * .3); g.gain.linearRampToValueAtTime(0, t0 + dur);
+      src.connect(f).connect(g).connect(actx.destination); src.start(t0); src.stop(t0 + dur + .05);
+    }
+    // a soft steady hum while the plane is up in the sky
+    function setHum(on) {
+      if (hum) { try { hum.src.stop(); } catch (e) {} hum = null; }
+      if (!on || !actx) return;
+      const src = airNoise(), f = actx.createBiquadFilter(), g = actx.createGain();
+      f.type = 'lowpass'; f.frequency.value = 420; g.gain.value = muted ? 0 : .05;
+      src.connect(f).connect(g).connect(actx.destination); src.start(); hum = { src, g };
+    }
+
+    // ---------- background music: a tiny looping tune made with the Web Audio API ----------
+    const _ = 0;
+    const TUNES = {
+      station: { step: .24, lead: [72, _, 76, _, 79, _, 76, _, 81, _, 79, _, 76, _, 74, _, 72, _, 76, _, 79, _, 84, _, 81, 79, 76, 74, 72, _, _, _],
+                 bass: [48, _, _, _, 55, _, _, _, 53, _, _, _, 55, _, _, _, 48, _, _, _, 55, _, _, _, 53, _, 55, _, 48, _, _, _] },
+      trip:    { step: .3, lead: [76, _, 79, _, 84, _, 79, _, 81, _, 79, _, 76, _, _, _, 74, _, 77, _, 81, _, 77, _, 79, _, 76, _, 72, _, _, _],
+                 bass: [48, _, _, _, _, _, 55, _, 53, _, _, _, _, _, 48, _, 50, _, _, _, _, _, 53, _, 55, _, _, _, 48, _, _, _] },
+    };
+    const music = { step: 0, next: 0 };
+    function note(midi, t0, dur, vol, type) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol, t0 + .02); g.gain.exponentialRampToValueAtTime(.0008, t0 + dur);
+      o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + dur + .05);
+    }
+    function musicTick() {
+      if (!actx) return;
+      if (music.next < actx.currentTime - .1) music.next = actx.currentTime + .05;      // after a pause, start again from now
+      const tune = journey ? TUNES.trip : TUNES.station;
+      while (music.next < actx.currentTime + .3) {
+        if (!muted && save.music && state !== 'idle') {
+          const l = tune.lead[music.step], b = tune.bass[music.step];
+          if (l) note(l, music.next, .42, .035, 'triangle');
+          if (b) note(b, music.next, .7, .045, 'sine');
+        }
+        music.next += tune.step; music.step = (music.step + 1) % 32;
+      }
+    }
+    setInterval(musicTick, 80);
     function clack(vol) {
       if (!actx || muted) return;
       if (!noiseBuf) {
@@ -889,12 +1198,15 @@
       speechSynthesis.speak(u);
     }
     const muteBtn = document.getElementById('mute');
-    muteBtn.onclick = () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; if (muted && window.speechSynthesis) speechSynthesis.cancel(); };
+    muteBtn.onclick = () => {
+      muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; if (muted && window.speechSynthesis) speechSynthesis.cancel();
+      if (hum) hum.g.gain.value = muted ? 0 : .05;
+    };
 
     // ================= saved progress =================
     const SAVE_KEY = 'numberTrain.v1';
     const blank = () => ({ max: 3, stats: Object.fromEntries(Array.from({ length: N }, (_, k) => [k + 1, { ok: 0, streak: 0, miss: 0 }])),
-                           stickers: [], trips: true, total: 0, sinceUnlock: 0, champion: false });
+                           stickers: [], trips: true, music: true, vehicle: 'train', total: 0, sinceUnlock: 0, champion: false });
     let save = blank();
     try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.stats && s.max) save = Object.assign(blank(), s); } catch (e) {}
     const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
@@ -980,7 +1292,7 @@
 
     function choose(n) {
       if (state !== 'ask' || n > save.max) return;
-      const btn = buttons[n - 1], tr = trains[n - 1], st = save.stats[target];
+      const btn = buttons[n - 1], tr = fleet[n - 1], st = save.stats[target];
       if (n === target) {
         clearTimeout(nudgeT);
         state = 'go'; pad.classList.add('off'); boardBounce = -1;
@@ -990,12 +1302,13 @@
         if (save.max < N && save.sinceUnlock >= 5 && allKnown()) pendingUnlock = true;
         persist();
         highlight(tr.i, true); setSignal(tr.i, true);
-        tr.lampMat.emissiveIntensity = 9; tr.happy = 1.4;
+        tr.lampMat.emissiveIntensity = 9; tr.happy = 1.4; tr.hop = .7; boing(300);
         const praise = pick(PRAISE);
         showBubble(praise + ' Number', n);
-        horn(); speak(`${praise} Number ${n}!`);
+        if (tr.plane) { chime(); jet(4.6, .09, 180, 620, .7); } else horn();
+        speak(`${praise} Number ${n}!`);
         follow = tr;
-        tr.anim = { from: tr.s, to: S_END, t: 0, dur: 5.5, delay: .8, done: () => arrive(tr) };
+        tr.anim = { from: tr.s, to: S_END, t: 0, dur: 4.4, delay: .75, done: () => arrive(tr) };
       } else {
         // no failing: say what was tapped, then show the right one straight away
         wrongs++; st.miss++; st.streak = 0; persist();
@@ -1012,7 +1325,7 @@
       state = 'arrived';
       showBubble('All aboard! Count with me', target);
       ding(); speak('All aboard! Count with me!');
-      tr.happy = 3;
+      tr.happy = 3; tr.hop = .7;
       burst(new THREE.Vector3(tr.x, 6, Z_START - tr.s));
       boardBounce = tr.i; setSignal(tr.i, false);
       boarding = { tr, count: 0, total: waiting[tr.i].length };
@@ -1024,23 +1337,50 @@
       const c = ++boarding.count;
       showCard(String(c), 800); speak(String(c), false);
       tone(520 + c * 60, .14, 'sine', .14);
-      if (c === boarding.total) { boarding = null; setTimeout(() => afterBoarding(tr), 1600); }
+      if (c === boarding.total) { boarding = null; tr.hop = .6; setTimeout(() => afterBoarding(tr), 1300); }
+    }
+    // a star flies up into the counter
+    function flyStar(then) {
+      const s = document.createElement('div'); s.className = 'fly'; s.textContent = '⭐'; document.body.appendChild(s);
+      const r = tripEl.getBoundingClientRect();
+      requestAnimationFrame(() => requestAnimationFrame(() => { s.style.transform = `translate(${r.left + r.width / 2 - innerWidth / 2}px, ${r.top + r.height / 2 - innerHeight * .45}px) scale(.35)`; }));
+      tone(880, .12, 'sine', .14); tone(1320, .25, 'sine', .14, .1);
+      setTimeout(() => { s.remove(); then(); }, 850);
     }
     function afterBoarding(tr) {
-      tripStars++; drawTrip();
-      if (tripStars >= 3) {
-        setTimeout(() => { tripStars = 0; drawTrip(); }, 2500);
-        if (save.trips) return startJourney(tr);
-      }
-      goHome(tr);
+      flyStar(() => {
+        tripStars++; drawTrip();
+        if (tripStars >= 3) {
+          setTimeout(() => { tripStars = 0; drawTrip(); }, 2500);
+          if (save.trips) return startJourney(tr);
+        }
+        goHome(tr);
+      });
     }
+    // planes fly: a take-off run, and a landing that ends rolling to a stop at s = to
+    const flyOff = tr => k => { tr.s = S_END + 38 * k * k; tr.alt = 8 * Math.pow(clamp((k - .5) / .5, 0, 1), 2); tr.pitch = .2 * sstep(.38, .7, k); };
+    const landAt = (tr, to, dist, high, touch) => k => {
+      tr.s = to - dist * (1 - k) * (1 - k);
+      tr.alt = high * Math.pow(Math.max(0, 1 - k / touch), 1.6);
+      tr.pitch = .09 * sstep(0, .2, k) * (1 - sstep(touch, touch + .15, k));
+    };
     function goHome(tr) {
       state = 'back'; boardBounce = -1;
-      showBubble('Bye bye, train number', tr.i + 1);
-      tr.anim = { from: tr.s, to: S0, t: 0, dur: 4, delay: 0, done: () => {
+      showBubble(`Bye bye, ${tr.plane ? 'plane' : 'train'} number`, tr.i + 1);
+      const refill = () => { if (tr.riders.some(r => r.visible)) { tr.riders.forEach(r => r.visible = false); spawnPassengers(tr.i); } };
+      const home = () => {
+        tr.s = S0; tr.alt = tr.pitch = 0;
         highlight(tr.i, false); tr.lampMat.emissiveIntensity = .8; follow = null;
-        if (tr.riders.some(r => r.visible)) { tr.riders.forEach(r => r.visible = false); spawnPassengers(tr.i); }
-        afterHome();
+        refill(); afterHome();
+      };
+      if (!tr.plane) { tr.anim = { from: tr.s, to: S0, t: 0, dur: 3.2, delay: 0, done: home }; return; }
+      // a plane takes off past the camera, then comes back out of the sky and lands at the far end of its airstrip
+      jet(1.9, .15, 260, 1500, .15);
+      tr.anim = { t: 0, dur: 1.6, delay: .2, fn: flyOff(tr), done: () => {
+        follow = null; refill(); highlight(tr.i, false);
+        jet(2.6, .1, 900, 220, .2);
+        tr.anim = { t: 0, dur: 2.8, delay: .25, fn: landAt(tr, S0, 72, 27, .62), done: home };
+        tr.anim.fn(0);
       } };
     }
     function afterHome() {
@@ -1062,7 +1402,7 @@
       let k = 0;
       const step = () => {
         if (k >= nums.length) { boardBounce = -1; return then(); }
-        const n = nums[k++]; boardBounce = n - 1; trains[n - 1].happy = 2;
+        const n = nums[k++]; boardBounce = n - 1; fleet[n - 1].happy = 2;
         showBubble(isNew ? 'A new number!' : 'This is number', n); showCard(String(n), isNew ? 2800 : 1500);
         speak(isNew ? `A new number! ${n}! This is number ${n}.` : `This is ${n}.`);
         tone(660, .2, 'sine', .15); tone(880, .3, 'sine', .15, .15);
@@ -1073,16 +1413,70 @@
 
     // tap a train or a number board in the 3D scene
     const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
-    const pickables = [...boards, ...trains.flatMap(tr => tr.cars)];
-    renderer.domElement.addEventListener('pointerdown', e => {
+    // toys: a train toots and hops, a passenger jumps and giggles, a sleeping train yawns and peeks
+    function toot(tr) { tr.hop = .7; tr.happy = 1.2; tootSound(tr.i); }
+    function tickle(w) { if (w.state === 'wait' && w.jump <= 0) { w.jump = .8; giggle(); } }
+    function snooze(tr) {
+      if (tr.peek > 0) return;
+      tr.peek = 1.6; tr.wobble = .5; yawn();
       if (state !== 'ask') return;
+      showBubble('Shh! Sleeping. Find', target, !revealed);
+    }
+    const balloonLayer = document.getElementById('balloons');
+    function spawnBalloon() {
+      const n = 1 + Math.floor(Math.random() * save.max), b = document.createElement('button');
+      b.className = 'balloon'; b.textContent = n; b.style.setProperty('--c', COLORS[n - 1]);
+      b.style.left = rnd(5, 84) + 'vw'; b.style.animationDuration = rnd(6.5, 9) + 's';
+      b.onpointerdown = ev => { ev.stopPropagation(); b.classList.add('pop'); popSound(); speak(String(n)); setTimeout(() => b.remove(), 300); };
+      b.onanimationend = () => b.remove();
+      balloonLayer.appendChild(b);
+    }
+    renderer.domElement.addEventListener('pointerdown', e => {
       ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
       ray.setFromCamera(ptr, camera);
-      const hit = ray.intersectObjects(pickables, true)[0];
+      if (journey) {                                   // on a trip: toot the train, bounce the scenery
+        const J = journey.J;
+        if (ray.intersectObjects(journey.tr.cars, true)[0]) return toot(journey.tr);
+        const hit = ray.intersectObjects(J.props, true)[0];
+        let o = hit && hit.object; while (o && !o.userData.prop) o = o.parent;
+        if (o && !(o.userData.hop > 0)) { o.userData.hop = .8; J.hopping.push(o); boing(rnd(200, 420)); }
+        return;
+      }
+      // little fingers are not precise: a tap near a passenger counts
+      let near = null, best = 46;
+      for (const w of waiting.flat()) {
+        if (w.state !== 'wait') continue;
+        tmpV.copy(w.g.position); tmpV.y += 1.1; tmpV.project(camera);
+        const d = Math.hypot((tmpV.x + 1) / 2 * innerWidth - e.clientX, (1 - tmpV.y) / 2 * innerHeight - e.clientY);
+        if (d < best) { best = d; near = w; }
+      }
+      if (near) return tickle(near);
+      const hit = ray.intersectObjects([...boards, ...fleet.flatMap(tr => tr.cars)], true)[0];
       if (!hit) return;
       let o = hit.object; while (o && o.userData.idx === undefined) o = o.parent;
-      if (o) choose(o.userData.idx + 1);
+      if (!o) return;
+      const n = o.userData.idx + 1, tr = fleet[n - 1];
+      if (n > save.max) return snooze(tr);
+      if (state === 'ask') return choose(n);
+      if (!boards.includes(o) && !tr.anim) toot(tr);
     });
+
+    // ---------- train or flight: the drop-down swaps the railway for the airport ----------
+    const vSel = document.getElementById('vehicle'), pvSel = document.getElementById('pvehicle');
+    function setMode(m) {
+      air = m === 'plane'; save.vehicle = air ? 'plane' : 'train'; persist();
+      fleet = air ? planes : trains;
+      railG.visible = signRail.visible = !air; airG.visible = signAir.visible = air;
+      trains.forEach(tr => tr.cars.forEach(c => c.visible = !air)); planes.forEach(tr => tr.cars.forEach(c => c.visible = air));
+      follow = null; boardBounce = -1;
+      for (let i = 0; i < N; i++) { highlight(i, false); setSignal(i, false); spawnPassengers(i); }
+      document.querySelectorAll('.vicon').forEach(el => el.textContent = air ? '✈️' : '🚆');
+      document.getElementById('title').textContent = document.title = air ? 'Number Plane' : 'Number Train';
+      vSel.value = pvSel.value = save.vehicle;
+    }
+    vSel.onchange = () => setMode(vSel.value);
+    pvSel.onchange = () => setMode(pvSel.value);
+    setMode(save.vehicle);
 
     layoutNumbers(); drawTrip();
     document.getElementById('play').onclick = () => {
@@ -1097,7 +1491,10 @@
     function drawParent() {
       parentEl.querySelectorAll('[data-max]').forEach(b => b.classList.toggle('on', +b.dataset.max === save.max));
       document.getElementById('pmax').textContent = [3, 5, 9].includes(save.max) ? '' : `(now 1–${save.max})`;
-      document.getElementById('ptrips').checked = save.trips;
+      document.getElementById('ptrips').checked = save.trips; document.getElementById('pmusic').checked = save.music;
+      // swapping is only safe while nothing is moving
+      pvSel.value = save.vehicle; pvSel.disabled = state !== 'ask' && state !== 'idle';
+      document.getElementById('pvnote').textContent = pvSel.disabled ? 'can be changed when the ride is back home' : '';
       document.getElementById('report').innerHTML = Array.from({ length: N }, (_, k) => {
         const n = k + 1, st = save.stats[n];
         const cls = n > save.max ? 'locked' : known(n) && st.streak >= 1 ? 'know' : st.ok + st.miss > 0 ? 'learn' : '';
@@ -1107,6 +1504,7 @@
     hold(document.getElementById('gear'), 1200, () => { drawParent(); parentEl.classList.add('open'); clearTimeout(nudgeT); });
     parentEl.querySelectorAll('[data-max]').forEach(b => b.onclick = () => { save.max = +b.dataset.max; save.sinceUnlock = 0; pendingUnlock = false; persist(); layoutNumbers(); drawParent(); });
     document.getElementById('ptrips').onchange = e => { save.trips = e.target.checked; persist(); };
+    document.getElementById('pmusic').onchange = e => { save.music = e.target.checked; persist(); };
     document.getElementById('preset').onclick = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); };
     document.getElementById('pclose').onclick = () => { parentEl.classList.remove('open'); if (state === 'ask') newRound(); };
     hold(document.getElementById('skip'), 800, () => { if (journey && !journey.ending) { journey.ending = true; endJourney(); } });
@@ -1129,7 +1527,7 @@
     }, 1, 1, false);
 
     function eyesOn(g, y, z, sep = .2, r = .08) { for (const x of [-sep, sep]) P(g, GEO.sph, '#1a1a1a', x, y, z, r); }
-    const G0 = (J, x, z, s = 1, ry) => grp(J.scene, x, J.h(x, z), z, s, ry);
+    const G0 = (J, x, z, s = 1, ry) => { const g = grp(J.scene, x, J.h(x, z), z, s, ry); g.userData.prop = true; g.userData.y0 = g.position.y; J.props.push(g); return g; };
     // place things around the loop: never on the track, in the water, or in front of the chase camera
     function scatter(J, n, minD, maxR, fn, ok = () => true) {
       let placed = 0, tries = 0;
@@ -1431,7 +1829,7 @@
     function buildJourney(D) {
       const S = new THREE.Scene();
       S.fog = new THREE.Fog(D.fog, 170, 780);
-      const J = { scene: S, update: [], night: [], D, fogDay: new THREE.Color(D.fog) };
+      const J = { scene: S, update: [], night: [], props: [], hopping: [], D, fogDay: new THREE.Color(D.fog) };
       // ---- sky: physical daylight + a night dome, stars, sun, moon, clouds ----
       J.sky = makeSky(D.turb * .3, D.ray + 1.6); S.add(J.sky);
       J.nightMat = nightMat();
@@ -1480,8 +1878,9 @@
       const rr = ramp(D.ramp);
       S.add(buildTerrain(1600, 256, J.h, (c, h) => rr(c, h)));
       // ---- track bed, rails, sleepers ----
+      J.rail = new THREE.Group(); S.add(J.rail);                    // hidden when a plane flies over instead
       const bed = new THREE.Mesh(trackBed(J.curve, 500), new THREE.MeshStandardMaterial({ map: gravelTex, roughness: 1, side: THREE.DoubleSide }));
-      bed.receiveShadow = true; S.add(bed);
+      bed.receiveShadow = true; J.rail.add(bed);
       for (const side of [-.6, .6]) {
         const off = [];
         for (let k = 0; k < 400; k++) {
@@ -1489,7 +1888,7 @@
           off.push(new THREE.Vector3(p.x - tg.z * side, RAIL_TOP - .08, p.z + tg.x * side));
         }
         const r = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(off, true), 700, .075, 6, true), railMat);
-        r.castShadow = true; S.add(r);
+        r.castShadow = true; J.rail.add(r);
       }
       const nS = Math.floor(J.len / .7);
       const sl = new THREE.InstancedMesh(sleeperGeo, sleeperMat, nS);
@@ -1498,8 +1897,18 @@
         dm.position.set(p.x, .28, p.z); dm.lookAt(p.x + tg.x, .28, p.z + tg.z); dm.updateMatrix(); sl.setMatrixAt(k, dm.matrix);
       }
       dm.rotation.set(0, 0, 0);
-      sl.receiveShadow = true; S.add(sl);
+      sl.receiveShadow = true; J.rail.add(sl);
       PROPS[D.props](J);
+      // ---- low clouds to fly through: all around, but never on the flight path or in front of the chase camera ----
+      J.cloudG = new THREE.Group(); S.add(J.cloudG); J.near = [];
+      for (let k = 0, tries = 0; k < 64 && tries < 3000; tries++) {
+        const a = rnd(0, 6.283), r = Math.sqrt(Math.random()) * 250, x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const [d, outside] = J.trackD(x, z);
+        if (d < 11 || (outside && d < 28)) continue;
+        const c = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, depthWrite: false, fog: false })), w = rnd(30, 64);
+        c.position.set(x, rnd(28, 44), z); c.scale.set(w, w * rnd(.36, .5), 1); c.renderOrder = 4;
+        J.cloudG.add(c); J.near.push(c); k++;
+      }
       // ---- snowfall ----
       if (J.snow) {
         const fp = []; for (let k = 0; k < 2600; k++) fp.push(rnd(-90, 90), rnd(0, 60), rnd(-90, 90));
@@ -1550,71 +1959,104 @@
     const V = () => new THREE.Vector3();
     const jv = { a: V(), b: V(), c: V(), fwd: V(), right: V(), sun: V(), moon: V(), up: new THREE.Vector3(0, 1, 0) };
 
+    const FOV = 42, FOV_FLY = 55;                                  // a wider view from the air: sky above, land below
     function startJourney(tr) {
-      state = 'journey'; fade(true); document.body.classList.add('journey');
+      state = 'journey'; document.body.classList.add('journey');
+      const fly = !!tr.plane, lead = fly ? 800 : 0;
+      if (fly) {                                                   // take-off run; the screen fades as the wheels leave the ground
+        jet(2.3, .16, 260, 1600); speak('Up we go!');
+        tr.anim = { t: 0, dur: 1.7, delay: 0, fn: flyOff(tr), done() {} };
+      }
+      setTimeout(() => fade(true), lead);
       setTimeout(() => {
         const D = DESTS[tr.i];
         const J = J_CACHE[tr.i] || (J_CACHE[tr.i] = buildJourney(D));
+        J.rail.visible = !fly; J.cloudG.visible = fly; J.spot.distance = fly ? 120 : 70;
+        tr.anim = null; tr.alt = tr.pitch = 0;
         tr.inJourney = true; tr.cars.forEach(c => J.scene.add(c));
-        journey = { J, tr, D, t: 0, dur: 22, prog: 0, look: null, envT: 0, saidDusk: false, saidNight: false, saidMorning: false, ending: false };
-        showBubble(`Next stop: ${D.name} ${D.emoji}`, tr.i + 1);
+        journey = { J, tr, D, t: 0, dur: fly ? 26 : 22, prog: 0, look: null, envT: 0, balloonT: 1.5, base: 38, slope: 0,
+                    saidLook: false, saidDusk: false, saidNight: false, saidMorning: false, ending: false };
+        showBubble(fly ? `Flying to ${D.name} ${D.emoji}` : `Next stop: ${D.name} ${D.emoji}`, tr.i + 1);
         showCard(`${D.emoji} ${cap(D.name)}`);
         if (!save.stickers.includes(tr.i)) { save.stickers.push(tr.i); persist(); }
-        speak(`Next stop, ${D.name}!`);
+        speak(fly ? `Up in the clouds! We are flying to ${D.name}!` : `Next stop, ${D.name}!`);
+        if (fly) { camera.fov = FOV_FLY; camera.updateProjectionMatrix(); setHum(true); }
         updateJourney(0, clock.elapsedTime);
         fade(false);
-      }, 600);
+      }, 600 + lead);
     }
     function endJourney() {
       fade(true);
       setTimeout(() => {
-        const { tr } = journey; journey = null;
+        const { tr } = journey; journey = null; balloonLayer.innerHTML = ''; setHum(false);
+        if (camera.fov !== FOV) { camera.fov = FOV; fitCamera(); }
         tr.inJourney = false; tr.cars.forEach(c => { scene.add(c); c.rotation.set(0, Math.PI, 0); });
-        tr.s = S_END; placeTrain(tr, clock.elapsedTime, 0);
-        tr.riders.forEach(r => r.visible = false);
-        spawnPassengers(tr.i);                       // the travellers hop off onto the platform
+        // the travellers hop off onto the platform, then the ride goes home
+        const settle = () => { tr.riders.forEach(r => r.visible = false); spawnPassengers(tr.i); setTimeout(() => goHome(tr), 2600); };
+        if (tr.plane) {                              // a plane comes in to land at its stand first, and the camera follows it down
+          jet(2.8, .1, 1000, 240);
+          tr.anim = { t: 0, dur: 3, delay: 0, fn: landAt(tr, S_END, 46, 9, .5), done: settle }; tr.anim.fn(0);
+          camLook.set(tr.x * .7, 1.5, Z_START - tr.s + 3 + tr.off * .75); camDir.copy(camDirBase);
+        } else {
+          tr.s = S_END; settle();
+          camLook.set(tr.x * .7, 1.5, Z_START - tr.s + 5); camDir.copy(camDirFollow);
+        }
+        placeTrain(tr, clock.elapsedTime, 0);
         tr.lampMat.emissiveIntensity = .8;
-        camLook.set(tr.x * .7, 1.5, Z_START - tr.s + 5); camDir.copy(camDirFollow);
         document.body.classList.remove('journey');
         state = 'back';
         showBubble('Welcome back to Toy Town!', tr.i + 1);
         showCard('🏠 Back to Toy Town!', 2000);
         speak('Welcome back! What a fun trip!');
         fade(false);
-        setTimeout(() => goHome(tr), 2600);
       }, 600);
     }
 
     let clackDist = 0;
+    const nearCol = new THREE.Color();
     function updateJourney(dt, time) {
-      const jn = journey, J = jn.J, tr = jn.tr;
+      const jn = journey, J = jn.J, tr = jn.tr, fly = !!tr.plane;
       jn.t += dt;
       const f = Math.min(1, jn.t / jn.dur);
       const prog = f - Math.sin(2 * Math.PI * f) / (2 * Math.PI);     // one smooth lap, slow at start & end
       const ds = (prog - jn.prog) * J.len; jn.prog = prog;
       const uE = (.75 + prog) % 1;
-      // train along the loop
-      tr.cars.forEach((c, k) => {
-        const u = (((uE - k * CAR_GAP / J.len) % 1) + 1) % 1;
-        const p = J.curve.getPointAt(u), tg = J.curve.getTangentAt(u);
-        const y = RAIL_TOP + Math.sin(time * 21 + k * 1.3) * .008;
-        c.position.set(p.x, y, p.z); c.lookAt(p.x + tg.x, y, p.z + tg.z);
-      });
-      tr.wheels.forEach(w => w.rotation.x += ds / WHEEL_R);
-      clackDist += ds; if (clackDist > 5) { clackDist = 0; clack(.3); }
-      const head = tr.cars[0].position;
-      // chase camera from the outside of the loop, low, with lots of sky
       const p = J.curve.getPointAt(uE), tg = J.curve.getTangentAt(uE);
       const out = jv.a.set(p.x, 0, p.z).normalize();
-      const want = jv.b.copy(p).addScaledVector(out, 11.5).addScaledVector(tg, 10.5); want.y = 4.1;
-      if (!jn.look) { camera.position.copy(want); jn.look = p.clone().setY(5.2); }
+      const head = tr.cars[0].position, want = jv.b.copy(p);
+      if (!jn.look) jn.look = V();
+      // a plane starts up in the clouds, comes down for a low look at the place by day, then climbs back above the clouds for the night
+      const low = fly ? sstep(.06, .2, f) * (1 - sstep(.42, .58, f)) : 0;
+      if (fly) {
+        const base = 38 - 23 * low, y = base + Math.sin(time * 1.1) * .4 + hopY(tr, 0);
+        jn.slope += (clamp((base - jn.base) / Math.max(ds, .05), -.45, .45) - jn.slope) * Math.min(1, dt * 3); jn.base = base;
+        head.set(p.x, y, p.z); tr.cars[0].lookAt(p.x + tg.x, y + jn.slope, p.z + tg.z);
+        const inside = jv.c.crossVectors(jv.up, tg).dot(out) < 0 ? 1 : -1;          // lean into the turn
+        tr.cars[0].rotateZ(-inside * .3 + Math.sin(time * .8) * .04);
+        // chase camera: ahead, outside the turn and above, looking back down past the plane at the land inside the loop
+        want.addScaledVector(out, 15).addScaledVector(tg, 13).setY(base + 7.5);
+        jn.look.copy(p).addScaledVector(tg, -1).addScaledVector(out, -5).setY(base + lerp(1.5, -4, low));
+      } else {
+        // train along the loop
+        tr.cars.forEach((c, k) => {
+          const u = (((uE - k * CAR_GAP / J.len) % 1) + 1) % 1;
+          const q = J.curve.getPointAt(u), t2 = J.curve.getTangentAt(u);
+          const y = RAIL_TOP + Math.sin(time * 21 + k * 1.3) * .008 + hopY(tr, k);
+          c.position.set(q.x, y, q.z); c.lookAt(q.x + t2.x, y, q.z + t2.z);
+        });
+        tr.wheels.forEach(w => w.rotation.x += ds / WHEEL_R);
+        clackDist += ds; if (clackDist > 5) { clackDist = 0; clack(.3); }
+        // chase camera from the outside of the loop, low, with lots of sky
+        want.addScaledVector(out, 11.5).addScaledVector(tg, 10.5).setY(4.1);
+        jn.look.copy(p).addScaledVector(tg, -2.5).setY(5.2);
+      }
       camera.position.copy(want);
-      jn.look.copy(p).addScaledVector(tg, -2.5).setY(5.2);
       camera.lookAt(jn.look);
       J.dome.position.copy(camera.position); J.stars.position.copy(camera.position);
 
-      // ---- sun & moon cross the sky in front of the camera ----
-      const ang = f * Math.PI * 2 + .35, el = Math.sin(ang);
+      // ---- sun & moon cross the sky in front of the camera (a flight keeps the daylight longer, for looking down) ----
+      const day = !fly ? f : f < .6 ? f * .74 : f < .93 ? .444 + (f - .6) * 1.515 : .944 + (f - .93) * .8;
+      const ang = day * Math.PI * 2 + .35, el = Math.sin(ang);
       camera.getWorldDirection(jv.fwd); jv.fwd.y = 0; jv.fwd.normalize();
       jv.right.crossVectors(jv.fwd, jv.up).normalize();
       const dirOf = (o, a) => {
@@ -1632,10 +2074,15 @@
       J.stars.material.opacity = nightK;
       J.clouds.mat.color.copy(CL_NIGHT).lerp(CL_DUSK, duskK).lerp(CL_DAY, dayK);
       J.clouds.list.forEach(c => c.position.x += dt * 3);
+      if (fly) {                                    // the low clouds take the colour of the sky and melt away as we fly into them
+        nearCol.copy(J.clouds.mat.color).multiplyScalar(1 + nightK * 1.6);
+        J.near.forEach(c => { c.material.color.copy(nearCol); c.material.opacity = .92 * sstep(4, 26, c.position.distanceTo(camera.position)); });
+      }
       // ---- light follows whichever is in the sky ----
       const sunUp = el > -.04, src = sunUp ? jv.sun : jv.moon;
       const dir = jv.a.copy(src); dir.y = Math.max(dir.y, .36); dir.normalize();
-      J.light.position.copy(head).addScaledVector(dir, 110); J.light.target.position.copy(head);
+      const lit = jv.c.copy(head); if (fly) lit.y *= .45;                 // shadows reach the ground under a plane
+      J.light.position.copy(lit).addScaledVector(dir, 110); J.light.target.position.copy(lit);
       if (sunUp) { J.light.intensity = 3.6 * sstep(-.04, .4, el); J.light.color.copy(C_WARM).lerp(C_WHITE, sstep(.05, .65, el)); }
       else { J.light.intensity = 2.0 * sstep(.04, .3, -el); J.light.color.copy(C_MOON); }
       J.hemi.intensity = .1 + .5 * dayK + .7 * nightK;
@@ -1643,9 +2090,9 @@
       // headlights at night
       tr.lampMat.emissiveIntensity = 2 + nightK * 14;
       const tg0 = J.curve.getTangentAt(uE);
-      J.spot.position.copy(head).addScaledVector(tg0, 2.6); J.spot.position.y = 2;
+      J.spot.position.copy(head).addScaledVector(tg0, 2.6); J.spot.position.y = fly ? head.y - .5 : 2;
       J.spot.target.position.copy(head).addScaledVector(tg0, 26); J.spot.target.position.y = 0;
-      J.spot.intensity = nightK * 900;
+      J.spot.intensity = nightK * (fly ? 2600 : 900);
       if (J.water) {
         const wu = J.water.material.uniforms;
         wu.time.value += dt * .6; wu.sunDirection.value.copy(src);
@@ -1653,6 +2100,10 @@
       }
       J.night.forEach(fn => fn(nightK));
       J.update.forEach(fn => fn(dt, time));
+      J.hopping = J.hopping.filter(g => { g.userData.hop -= dt; g.position.y = g.userData.y0 + Math.abs(Math.sin(g.userData.hop * 11)) * 1.6 * Math.max(0, g.userData.hop); return g.userData.hop > 0; });
+      // number balloons to pop
+      jn.balloonT -= dt;
+      if (jn.balloonT <= 0 && f > .04 && f < .9) { spawnBalloon(); jn.balloonT = rnd(1.0, 1.7); }
       // reflections & ambient light come from the sky as it changes
       jn.envT -= dt;
       if (jn.envT <= 0) {
@@ -1664,6 +2115,7 @@
       }
 
       // ---- little narration ----
+      if (fly && !jn.saidLook && f > .13) { jn.saidLook = true; showBubble(`👀 Look down! ${cap(jn.D.name)} ${jn.D.emoji}`, tr.i + 1); speak(`Look down! There is ${jn.D.name}!`); }
       if (!jn.saidDusk && f > .3 && el < .3) { jn.saidDusk = true; showBubble('🌇 The sun is going down…', tr.i + 1); speak('Look! The sun is going down.'); }
       if (!jn.saidNight && el < -.12) { jn.saidNight = true; showBubble('🌙 Good night! Moon and stars!', tr.i + 1); speak('Good night! Look at the moon and the stars!'); }
       if (jn.saidNight && !jn.saidMorning && f > .9 && el > 0) { jn.saidMorning = true; showBubble('☀️ Good morning, sun!', tr.i + 1); speak('Good morning! Here comes the sun!'); }
@@ -1674,17 +2126,18 @@
     const clock = new THREE.Clock();
     renderer.setAnimationLoop(() => {
       const dt = Math.min(clock.getDelta(), .05), time = clock.elapsedTime;
-      for (const tr of trains) {
+      for (const tr of fleet) {
         if (tr.anim) {
           const a = tr.anim;
           if (a.delay > 0) a.delay -= dt;
           else {
             a.t += dt / a.dur;
             const prev = tr.s;
-            tr.s = a.from + (a.to - a.from) * ease(Math.min(1, a.t));
+            if (a.fn) a.fn(Math.min(1, a.t));        // a flight path of its own
+            else tr.s = a.from + (a.to - a.from) * ease(Math.min(1, a.t));
             const ds = tr.s - prev;
             tr.wheels.forEach(w => w.rotation.x -= ds / WHEEL_R);
-            clackDist += Math.abs(ds); if (clackDist > 5) { clackDist = 0; clack(Math.min(.35, Math.abs(ds) / dt * .05)); }
+            if (!tr.plane) { clackDist += Math.abs(ds); if (clackDist > 5) { clackDist = 0; clack(Math.min(.35, Math.abs(ds) / dt * .05)); } }
             if (a.t >= 1) { tr.anim = null; a.done(); }
           }
         }
@@ -1692,6 +2145,11 @@
         placeTrain(tr, time, dt);
       }
       updatePassengers(dt, time);
+      zzz.forEach((s, i) => {
+        s.visible = i >= save.max;
+        if (s.visible) { const k = (time * .35 + i * .37) % 1; s.position.set(xOf(i) + .9 + k * .8, (air ? 4.6 : 5.6) + k * 2.2, Z_START - S0 - 1.5 + (air ? 3 : 0)); s.material.opacity = Math.sin(k * Math.PI); s.scale.setScalar(2.2 + k * 1.4); }
+      });
+      if (air && !journey) airUpdate.forEach(fn => fn(dt, time));
 
       if (journey) updateJourney(dt, time);
       else {
@@ -1699,7 +2157,7 @@
         let fk = 0;
         if (follow) {
           fk = clamp((follow.s - S0) / (S_END - S0), 0, 1);
-          camGoal.set(follow.x * .7, 1.5, Z_START - follow.s + 3);
+          camGoal.set(follow.x * .7, 1.5, Z_START - follow.s + 3 + follow.off * .75);
         } else camGoal.copy(camBase);
         camLook.lerp(camGoal, 1 - Math.pow(.3, dt));
         camDirGoal.copy(camDirBase).lerp(camDirFollow, fk).normalize();
