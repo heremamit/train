@@ -1247,7 +1247,7 @@
     }
 
     // ================= game flow =================
-    let state = 'idle', target = 0, lastTarget = 0, mode = 'see', revealed = true, wrongs = 0, boardBounce = -1, follow = null;
+    let state = 'idle', target = 0, lastTarget = 0, mode = 'see', revealed = true, boardBounce = -1, follow = null;
     let tripStars = 0, pendingUnlock = false, forceNext = 0, nudgeT = 0, boarding = null;
     const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const FIND = ['Find number', 'Where is number', 'Tap number', 'Can you find number'];
@@ -1281,7 +1281,7 @@
     }
     function newRound() {
       if (target > save.max) lastTarget = 0;
-      target = pickTarget(); lastTarget = target; wrongs = 0; state = 'ask'; boardBounce = -1;
+      target = pickTarget(); lastTarget = target; state = 'ask'; boardBounce = -1;
       // once a number is well known, sometimes ask by voice only: hear "three", find 3
       mode = save.stats[target].streak >= 3 && Math.random() < .6 ? 'hear' : 'see'; revealed = mode === 'see';
       buttons.forEach(b => b.classList.remove('hint'));
@@ -1297,7 +1297,7 @@
         clearTimeout(nudgeT);
         state = 'go'; pad.classList.add('off'); boardBounce = -1;
         buttons.forEach(b => b.classList.remove('hint'));
-        if (wrongs === 0) { st.ok++; st.streak++; }
+        st.ok++; st.streak++;
         save.total++; save.sinceUnlock++;
         if (save.max < N && save.sinceUnlock >= 5 && allKnown()) pendingUnlock = true;
         persist();
@@ -1310,14 +1310,16 @@
         follow = tr;
         tr.anim = { from: tr.s, to: S_END, t: 0, dur: 4.4, delay: .75, done: () => arrive(tr) };
       } else {
-        // no failing: say what was tapped, then show the right one straight away
-        wrongs++; st.miss++; st.streak = 0; persist();
+        // a wrong number is a failed try: show which one was meant, then ask for a different number
+        clearTimeout(nudgeT);
+        st.miss++; st.streak = 0; persist();
         btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
         soft(); tr.wobble = .7;
-        revealed = true;
-        showBubble(`That's ${n}. Find`, target);
-        speak(`That is ${n}. Let's find ${target}!`);
-        hint(); nudge(1);
+        state = 'miss'; revealed = true;
+        showBubble(`That's ${n}. This is`, target);
+        speak(`That is ${n}. This is ${target}.`);
+        hint();
+        setTimeout(() => { if (state === 'miss') newRound(); }, 3400);
       }
     }
 
@@ -2176,7 +2178,7 @@
         if (c.life <= 0 || c.m.position.y < 0) { c.life = 0; c.m.visible = false; }
       });
       boards.forEach((b, i) => {
-        const on = i === boardBounce && (state === 'arrived' || state === 'ask' || state === 'intro');
+        const on = i === boardBounce && (state === 'arrived' || state === 'ask' || state === 'intro' || state === 'miss');
         const k = on ? Math.abs(Math.sin(time * 6)) : 0;
         b.scale.setScalar(1 + k * .18); b.position.y = BOARD_Y - .75 - k * .25;
       });
