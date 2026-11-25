@@ -1462,7 +1462,7 @@
     });
 
     // ---------- train or flight: the drop-down swaps the railway for the airport ----------
-    const vSel = document.getElementById('vehicle'), pvSel = document.getElementById('pvehicle');
+    const vSel = document.getElementById('vehicle'), pvSel = document.getElementById('pvehicle'), titleEl = document.getElementById('title');   // kept: the start card is removed on play
     function setMode(m) {
       air = m === 'plane'; save.vehicle = air ? 'plane' : 'train'; persist();
       fleet = air ? planes : trains;
@@ -1471,7 +1471,7 @@
       follow = null; boardBounce = -1;
       for (let i = 0; i < N; i++) { highlight(i, false); setSignal(i, false); spawnPassengers(i); }
       document.querySelectorAll('.vicon').forEach(el => el.textContent = air ? '✈️' : '🚆');
-      document.getElementById('title').textContent = document.title = air ? 'Number Plane' : 'Number Train';
+      titleEl.textContent = document.title = air ? 'Number Plane' : 'Number Train';
       vSel.value = pvSel.value = save.vehicle;
     }
     vSel.onchange = () => setMode(vSel.value);
